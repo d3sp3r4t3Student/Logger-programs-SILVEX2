@@ -1,0 +1,242 @@
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*   Measuring a profile of the air temperature above spots with and without snow,
+'*   during the snowmelt. Several thermocouple temperature sensors and one sensor
+'*   with a ventilated radiation shield, mounted on a pole on different heights.
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-main.cr6
+'* author:   Ch. Buchli
+'* date:     2021-02-22
+'* revision: v1.1.0
+'*************************************************************************************
+'* sensors T1: 5 x Campbell FW1/FW05 thermocouple
+'*             1 x Campbell IRGASON sonic anemometer and gas analyzer
+'* sensors T2: 10 x Campbell FW1/FW05 thermocouple
+'*             2 x Campbell CSAT3B sonic anemometer
+'*             1 x Campbell IRGASON sonic anemometer and gas analyzer
+'*             1 x Campbell 43347 RTD (1kΩ platinum resistor), with a
+'*                 Campbell 43502 ventilated radiation shield
+'* expansion:  1 x VOLT116, measurement module, connected over CPI
+'*************************************************************************************
+'* revision history:
+'*    v0.0.1    first draft (copy of CR1000-code) & WIP (work in progress)
+'*    v0.0.2    add variables of structure type
+'*    v0.0.3    continue on coding main part (scans and control), adapt PConfig in
+'*              PulseCount to CR6-function, adapt PortGet_UsrFct to CheckPort_UsrFct
+'*              for the use with CR6 (user functions), change how PRT coefficients
+'*              are set (system settings), complete datatables and some adaptions
+'*              to them (datatables)
+'*    v0.0.4    remove duplicate unit assignement in structures (system settings)
+'*    v0.0.5    change stations name, add SDM-port (system settings)
+'*    v0.1.0    resolve major problem that caused compiler to crash - structure
+'*              element mustn't be used with repetitions, neither with WindVector-
+'*              or Average-function inside data tables
+'*    v0.1.1    change to SW12 instead of PortSet for CSATs, add SDMBeginPort(),
+'*              remove conditionally call of EC100()
+'*    v0.2.0    switch off fan during night, respectively only for a give slot
+'*              use tablename-constants to call the tables
+'*              add clock synchronization between tower1&2-station and tower3-station
+'*    v0.2.1    change off-time for fan during night (0 -> 300)
+'*              remove mistake of the battery-query for the fan switch-off
+'*    v0.2.2    changed connections, PRT bridge-excitation U8->U5, ventilator-tacho
+'*              U6->U7 (as not possible at same pair) (system settings)
+'*              unified name of tables to shorter version (datatables)
+'*    v0.2.3    adapt variable of status-table (datatables)
+'*              change CardsFreeMemory-unit to kB (usr-functions & datatables)
+'*    v0.2.4    average of CSAT3B_monitor-values caused problem to service table
+'*              -> list them separately (instantaneous values) (datatables)
+'*    v0.2.5    change threshold for the fan from 11.5 to 12V (system settings)
+'*              slower interval for slow-data at low battery too, same as during night
+'*    v1.0.0    there was no increase of the version after tests, but it was directly
+'*              installed during Spring 2021
+'*    v1.1.0    adpations for deploying at Tschuggen in late winter 2023
+'*              -> the station is installed with only Tower 2, so only one IRGASON,
+'*                 only one CSAT3B and the ventilated 43347 RTD
+'*              therefore the following adaptions: disable datatable Tower1_FastData
+'*              with trigger-flag, commented all TCs from Tower2_FastData and from
+'*              Tower12_SlowData, add auxiliary temperature from unventilated sensor
+'*              of IRGASONs to FastData-tables, add air pressure and temperature of
+'*              IRGASON-tower2 to SlowData-table
+'*************************************************************************************
+'* use instructions and functional description:
+'*  - the main program can run on different loggers without adaptions, as the
+'*    stations name and some calibration parameters are configured in a separate file
+'*  - to prevent skipped scans with the higher scan rate, the compile mode is forced
+'*    to pipeline mode
+'*  - the TCs are measured in the main (fast) scan and the RTD (resistance temperature
+'*    device) or PRT (platinum resistance thermometer) are measured in the slow scan
+'*  - every Monday 10 o'clock, the station status is stored
+'*  - as the standard at SLF, the logger runs on wintertime (UTC+1)
+'*************************************************************************************
+
+PipelineMode               'run logger in pipeline mode, not in sequential mode
+
+'***   constants & configuration settings declared in a separate file   **************
+Include "CPU:TemperatureProfile_tower12-system_settings.cr6"  'include separate file
+
+'***   general constants and variables   *********************************************
+Const SensorsStartUpDelay = 30       'wait at program start for sensors be ready [s]
+
+Public IRGASON_tower1 As IRGASON_t, IRGASON_tower2 As IRGASON_t
+  'data from the IRGASON on tower 1 and from the IRGASON on tower 2
+Public CSAT3B_lower As CSAT3B_t, CSAT3B_upper As CSAT3B_t
+  'data from the lower and the upper CSAT3B on tower 2
+Public CSAT3B_lower_mon As CSAT3B_monitor_t, CSAT3B_upper_mon As CSAT3B_monitor_t
+  'monitor data from the two CSAT3B
+
+Public AirTempTC(NumberOfTC_tower1+NumberOfTC_tower2) : Units AirTempTC() = °C
+  'temperatures of all thermocouples, first ones of tower 1 and remaining of tower 2
+
+Public AirTempPRT : Units AirTempPRT = °C                'reference temperature
+Public PRT_resistance : Units PRT_resistance = Ω         'resistance of PRT
+Public VentilatorSpeed : Units VentilatorSpeed = Hz
+  'speed of fan (actually its frequency) from ventilated radiation shield
+
+' HygroVue Helix Shield Setup  
+Public TRHData(4)
+Alias TRHData(1)=AirTC
+Alias TRHData(2)=RH
+Alias TRHData(3)=Dewp
+Alias TRHData(4)=VP
+Units AirTC=Deg C
+Units RH=%
+Units Dewp=Deg C
+Units VP=kPa
+
+Public LoggerTemp : Units LoggerTemp = °c      'system variables
+Public BatteryVoltage : Units BatteryVoltage = V
+Public BatteryVoltage_min : Units BatteryVoltage_min = V
+Const BattMin_RunNr = BattMin_Time * 60 / SlowScanInterval
+                                               'number of values for running minimum
+Public Logger As String * 50                   'variables to capture status infos
+Public ProgramName As String * 50
+Public ProgStartTime As Long
+Public ProgramSignature, ProgramErrors, CalibErrors
+Public BackupBattery : Units BackupBattery = V
+Public CardsFreeMemory As Long : Units CardsFreeMemory = kB
+
+'***   data tables are defined in a separate file   **********************************
+Include "CPU:TemperatureProfile_tower12-datatables.cr6"  'include the separate file
+
+'***   user functions & subroutines are defined in a separate file   *****************
+Include "CPU:TemperatureProfile_tower12-usr_functions.cr6"    'include separate file
+
+'---   initialize loggers interfaces   -----------------------------------------------
+SDMBeginPort (IRGASON_SDMport)       'configure SDM port on U9, U10 & U11
+
+'***   main program   ****************************************************************
+BeginProg
+  GetStatus()              'read station status and save the startup-values
+  CallTable TableName_Status
+
+'---   switch all instruments on   ---------------------------------------------------
+  PortSet (FanCtrlPwr,NO_ON,1)                 'switch fan of radiation shield on
+  'PortSet (IRGASON_tower1_Pwr,NO_ON,1)         'switch both IRGASONs on
+  PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+  SW12 (CSAT3B_lower_Pwr,NO_ON,1)              'switch both CSATs on
+  SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+  Delay (1,SensorsStartUpDelay,sec)            'wait for the instruments to be ready
+  'IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
+  IRGASON_tower2.IrgasonEnable = True
+  CSAT3B_lower.CSAT3BEnable = True             'enable both CSATs
+  CSAT3B_upper.CSAT3BEnable = True
+  
+'---   main scan loop   --------------------------------------------------------------
+  Scan (FastScanInterval,msec,3,0)
+    CDM_TCComp (VOLT116,VOLT116_CPIaddr,AirTempTC(),NumberOfTC_tower1+NumberOfTC_tower2,TC_1_tower1_DIFFch,TC_Type,0,0)
+      'measure all TCs one after the other, of tower 1 and tower 2, with differential
+      '  measurement and automatic compensation of the the cold-junction temperature
+      '  on the VOLT116
+   ' If CheckPort (IRGASON_tower1_Pwr) = True Then        'read only if it's on
+     'not possible to use EC100() conditionally
+    'EC100 (IRGASON_tower1,IRGASON_tower1_SDMaddr,IRGASON_normalOutCMD)
+      'read the data from IRGASON tower 1s EC100, over SDM-connection
+    EC100 (IRGASON_tower2,IRGASON_tower2_SDMaddr,IRGASON_normalOutCMD)
+      'read the data from IRGASON tower 2s EC100, over SDM-connection
+    If CheckPort_UsrFct (CSAT3B_lower_Pwr) = True Then   'read only if it's on
+      CSAT3B (CSAT3B_lower,CSAT_ComBus,CSAT3B_lower_CPIaddr,CSAT_Mode)
+        'read the data from the lower CSAT3B on tower 2, over CPI-connection
+    EndIf
+    If CheckPort_UsrFct (CSAT3B_upper_Pwr) = True Then   'read only if it's on
+      CSAT3B (CSAT3B_upper,CSAT_ComBus,CSAT3B_upper_CPIaddr,CSAT_Mode)
+        'read the data from the upper CSAT3B on tower 2, over CPI-connection
+    EndIf
+
+    PulseCount (VentilatorSpeed,1,VentilatorPch,3,1,1,0) 'measure fans speed
+      'tachometer output of 43502, frequency with high frequency-option
+
+    'CallTable TableName_Tower1_FastData        'call data tables
+    CallTable TableName_Tower2_FastData
+    CallTable TableName_Tower12_SlowData       'to average some values
+  NextScan
+
+'---   slow scan loop   --------------------------------------------------------------
+  SlowSequence
+    Scan (SlowScanInterval,sec,0,0)
+      BrHalf4W (PRT_resistance,1,PRT_Vrange,PRT_Vrange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
+        'measure platinum resistance thermometer with 4 wire half bridge measurement
+      AirTempPRT = PRTcalibCoeff0 + PRT_resistance * PRTcalibCoeff1 + PRT_resistance^2 * PRTcalibCoeff2
+        'calculate the exact temperature with the calibration coefficients
+      SDI12Recorder (TRHData,HygroVueSDIPort,HygroVueSDIaddr,HygroVueSDICommand,HygroVueSDIMult,HygroVueSDIOffs)
+        'measure HygroVue
+
+      Battery (BatteryVoltage)       'measure the voltage of the supply
+      MinRun (BatteryVoltage_min,1,BatteryVoltage,BattMin_RunNr)
+        'calculate the minimum of the batterys voltage, to decide if power devices on
+      PanelTemp (LoggerTemp,15000)   'measure panels temperature of logger
+      CSAT3BMonitor (CSAT3B_lower_mon,CSAT_ComBus,CSAT3B_lower_CPIaddr)
+      CSAT3BMonitor (CSAT3B_upper_mon,CSAT_ComBus,CSAT3B_upper_CPIaddr)
+      CallTable TableName_Service
+
+      If BatteryVoltage_min >= FanPwrBattThreshold AND TimeIsBetween (FanPwrOnMain,FanPwrOffMain,FanPwrIntervalMain,min) OR IfTime (TempRefDatatableNightInterval-SlowScanInterval,TempRefDatatableNightInterval,sec) Then
+          'during day and one scan before the interval of storing the data during
+          '  night, set flag to write into table (as the table itself is called in
+          '  the fast scan loop), additionally the table has the normal table
+          '  interval too, to prevent storing "fast data" during this five seconds
+          'if battery dropped to low and the fan is switched off (same criteria),
+          '  write with the slower interval to the table too
+        SlowData_WriteToTable = True
+      Else
+        SlowData_WriteToTable = False
+      EndIf
+
+      If BatteryVoltage_min >= FanPwrBattThreshold AND (TimeIsBetween (FanPwrOnMain,FanPwrOffMain,FanPwrIntervalMain,min) OR TimeIsBetween (FanPwrOnSec,FanPwrOffSec,FanPwrIntervalSec,sec)) Then
+          'switch fan on only if calculated minimum battery voltage didn't drop below
+          '  given threshold AND only during day OR at the give timeslot during night
+        PortSet (FanCtrlPwr,NO_ON,1)
+      Else
+        PortSet (FanCtrlPwr,NO_OFF,1)
+      EndIf
+
+      'If IRGASON_tower1.IrgasonEnable = True Then        'switch instruments off if
+      '  PortSet (IRGASON_tower1_Pwr,NO_ON,1)             '  they're disabled by user
+      'Else                                               '  flag (IRGASONs & CSATs)
+      '  PortSet(IRGASON_tower1_Pwr,NO_OFF,1)
+      'EndIf
+      If IRGASON_tower2.IrgasonEnable = True Then
+        PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+      Else
+        PortSet(IRGASON_tower2_Pwr,NO_OFF,1)
+      EndIf
+      If CSAT3B_lower.CSAT3BEnable = True Then
+        SW12 (CSAT3B_lower_Pwr,NO_ON,1)
+      Else
+        SW12 (CSAT3B_lower_Pwr,NO_OFF,1)
+      EndIf
+      If CSAT3B_upper.CSAT3BEnable = True Then
+        SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+      Else
+        SW12 (CSAT3B_upper_Pwr,NO_OFF,1)
+      EndIf
+
+      If IfTime (0,ClockSync_Interval,hr) Then 'synchronise clock with tower3-station
+        ClockReport (ClockSync_ComPort,0,ClockSync_SlavePakBus)
+      EndIf
+
+      If IfTime (StatTableTimeOnInt,StatTableInterval,Hr) Then
+        GetStatus()                  'record status every Monday at 10 o'clock
+        CallTable TableName_Status
+      EndIf   
+    NextScan
+  EndSequence
+EndProg

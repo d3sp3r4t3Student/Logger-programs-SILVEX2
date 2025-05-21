@@ -1,0 +1,54 @@
+'*************************************************************************************
+'* System settings for Silvia1                                         *
+'*************************************************************************************
+' Max Sesselmann und Patricia Asemann adapted from
+' Michael Haugeneder adapted from Chasper Buchli 25.07.2023
+'*************************************************************************************
+'* main program:  Silvia1_main.cr1x
+'* description:   settings and calibration coefficients for the main program, to
+'*                distinguish several stations and adapt to the differing sensors
+'*************************************************************************************
+'*************************************************************************************
+
+'***   general&multi-purpose constant   ******************************************
+Const CSAT3B_Mode = 0       'measurements triggered by the logger
+Const CSAT3_Command = 91    'trigger and get sonic temperature and wind data
+
+'***   constants & configuration settings   ******************************************
+StationName (Silvia1)                     'assign stations name to the logger
+
+ConstTable
+  Const FastScanInterval = 50       'interval of main scan-loop in [ms], = 20Hz
+  Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
+  Const ServiceDataInterval = 30    'interval for general service data [min]
+
+  Const CSAT3B_SDMaddr = 3          'SDM address of CSAT3B
+  Const CSAT3_SDMaddr = 9            'SDM address of CSAT3
+
+  Const PRT_DIFFch = 7     'first differential channel of 4 wire measurement
+  Const PRT_VXch = 1       'Vx1, exicitation channel for PRT-measurement
+  Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
+  Const PRT_Vrange = 2     '±250mV input range for BrHalf4W for R_PRT with 200µA
+                           '  to prevent self heating of the PRT
+  Const PRT_Vex = 2350     '2350mV exitation voltage, to stay below 200µA I_PRT
+  Const VentilatorPch = 1  'P1, pulse channel for fan of radiation shield
+
+  Const FanCtrlPort = 9    'SW12 can also be used with PortSet-function as number 9
+  Const FanPwrBattThreshold = 11.5   'if battery drops below, switch ventilator off [V]
+  Const BattMin_Time = 15            'record batterys minimum over this time [min]
+  Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
+  Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
+  Const FanPwrOffMain = 1080         '  to 18:00 wintertime (UTC+1) [min], during day
+  Const FanPwrIntervalSec = 300      'interval for fan during night (5min) [s]
+  Const FanPwrOnSec = 270            'starting at 4min 30s [s]
+  Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
+  Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
+    '  reference temperature into datatable, same as for fan at night [s]
+
+  Const HygroVueSDIPort = C5         'HygroVue measurements are triggered using SDI12Recorder Command, using port C5
+  Const HygroVueSDIaddr = "0"        'default SDIaddr as only HygroVue is connected to C5
+  Const HygroVueSDICommand = "M3!"   'measures all available data (T, RH, dewpoint, vapor pressure)
+  Const HygroVueSDIMult = 1          'multiplication factor
+  Const HygroVueSDIOffs = 0          'offset
+  Const TRHData_WriteToTable = True
+EndConstTable

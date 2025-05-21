@@ -1,0 +1,39 @@
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-usr_functions.cr6     * author:   Ch. Buchli
+'* revision: v1.1.0                                           * date:     2021-03-09
+'*************************************************************************************
+'* main program:  TemperatureProfile_tower12-main.cr6
+'* description:   user functions which are used in main program
+'*************************************************************************************
+'* revision history:
+'*    v0.0.2    extracted from main program
+'*    v0.0.3    adapt PortGet_UsrFct to CheckPort_UsrFct for the use with CR6
+'*    v0.2.3    change CardsFreeMemory-unit to kB
+'*************************************************************************************
+
+'***   functions & subroutines   *****************************************************
+Function GetStatus ()                'read some actual status data from Status-table
+  Logger = Status.StationName
+  ProgramName = Status.ProgName
+  ProgStartTime = Status.StartTime
+  ProgramSignature = Status.ProgSignature
+  ProgramErrors = Status.ProgErrors
+  CalibErrors = Status.ErrorCalib
+  BackupBattery = Status.LithiumBattery
+  If Status.CardStatus = "Card OK." Then       'test if a card is inserted
+    CardsFreeMemory = Status.CardBytesFree / toKiloB
+  EndIf          'read how much memory is left on SD-card [kB]
+EndFunction
+
+Function CheckPort_UsrFct (TestPort) As Boolean  'returns the state of a certain port
+  Select Case TestPort               '  as CheckPort doesn't work for SW12-ports, this
+    Case SW12_1                      '  function is a workaround to get their state
+      Return Status.SW12Volts(1)
+    Case SW12_2
+      Return Status.SW12Volts(2)
+    Case Else
+      Return False                   'return the determined state of the port
+  EndSelect
+EndFunction

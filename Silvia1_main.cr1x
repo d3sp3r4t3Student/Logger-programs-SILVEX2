@@ -1,0 +1,251 @@
+'=========================================================================
+' Programm  fuer HEFEXII Logger - Box3
+'=========================================================================
+'
+' Patricia Asemann and Max Sesselmann adapted from
+' Michael Haugeneder adapted from Franz Herzog and Chasper Buchli
+'                 
+'  sensors
+'  ----------------------
+'  CSAT3B (former T2 upper CSAT)
+'  CSAT3 
+'  Tair in helix shield
+'
+'  description
+'  ---------------------
+' - stations name and some calibration parameters are configured in a
+'   separate file called Silvia1_system_settings.cr1x
+' - to prevent skipped scans with the higher scan rate, the compile mode is
+'   forced to pipeline mode
+' - CSAT3B CSAT3 measured in the main (fast) scan
+' - ventilated Tair is measured in the slow scan
+'
+'**************************************************************************
+
+PipelineMode             'run logger in pipeline mode, not in sequential mode
+
+'***   constants & configuration settings declared in a separate file   **************
+Include "CPU:Silvia1_system_settings.cr1x"   'include separate file
+
+'***   general variables   ***********************************************************
+Const SensorsStartUpDelay = 30 'wait at program start for sensors to be ready [s]
+
+Public CSAT3B_Vals(5)
+Public CSAT3B_MonitorVals(4)
+Alias CSAT3B_Vals(1) = Ux_CSAT3B
+Alias CSAT3B_Vals(2) = Uy_CSAT3B
+Alias CSAT3B_Vals(3) = Uz_CSAT3B
+Alias CSAT3B_Vals(4) = Ts_CSAT3B
+Alias CSAT3B_Vals(5) = Diag_CSAT3B
+Alias CSAT3B_MonitorVals(1) = BoardTemp_CSAT3B
+Alias CSAT3B_MonitorVals(2) = BoardHumidity_CSAT3B
+Alias CSAT3B_MonitorVals(3) = InclinePitch_CSAT3B
+Alias CSAT3B_MonitorVals(4) = InclineRoll_CSAT3B
+Units Ux_CSAT3B = m/s
+Units Uy_CSAT3B = m/s
+Units Uz_CSAT3B = m/s
+Units Ts_CSAT3B = C
+Units Diag_CSAT3B = arb
+Units BoardTemp_CSAT3B = C
+Units BoardHumidity_CSAT3B = percent
+Units InclinePitch_CSAT3B = deg
+Units InclineRoll_CSAT3B = deg
+
+Public CSAT3_Vals(5)
+Alias CSAT3_Vals(1) = Ux_CSAT3
+Alias CSAT3_Vals(2) = Uy_CSAT3
+Alias CSAT3_Vals(3) = Uz_CSAT3
+Alias CSAT3_Vals(4) = Ts_CSAT3
+Alias CSAT3_Vals(5) = Diag_CSAT3
+Units Ux_CSAT3 = m/s
+Units Uy_CSAT3 = m/s
+Units Uz_CSAT3 = m/s
+Units Ts_CSAT3 = C
+Units Diag_CSAT3 = arb
+
+Public TRHData(4)
+Alias TRHData(1)=AirTC
+Alias TRHData(2)=RH
+Alias TRHData(3)=Dewp
+Alias TRHData(4)=VP
+Units AirTC=Deg C
+Units RH=%
+Units Dewp=Deg C
+Units VP=kPa
+
+Public LoggerTemp : Units LoggerTemp = °C      'system variables
+Public BatteryVoltage : Units BatteryVoltage = V
+Public BatteryVoltage_min : Units BatteryVoltage_min = V
+Const BattMin_RunNr = BattMin_Time * 60 / SlowScanInterval
+                                               'number of values for running minimum
+Public Logger As String * 50                   'variables to capture status infos
+Public ProgramName As String * 50
+Public ProgStartTime As Long
+Public ProgramSignature, ProgramErrors, CalibErrors
+Public BackupBattery : Units BackupBattery = V
+Public CardsFreeMemory As Long : Units CardsFreeMemory = B
+
+'***   constants & variables for table and file handling  ****************************
+Const TableName_sonics = "Silvia1_sonics"
+Const FileName_sonics = "CRD:" & TableName_sonics & "_"
+Const FileTimeOnInt_sonics = 0    'new files at midnight
+Const FileInterval_sonics = 6     'new file every 6 hours
+Public LastWrittenFile_sonics As String * 40
+
+Const TableName_CSAT3B_Monitor = "Silvia1_CSAT3B_mon"
+Const FileName_CSAT3B_Monitor = "CRD:" & TableName_CSAT3B_Monitor & "_"
+Const FileTimeOnInt_CSAT3B_Monitor = 0    'new files at midnight
+Const FileInterval_CSAT3B_Monitor = 24     'new file every 24 hours
+Public LastWrittenFile_CSAT3B_Monitor As String * 40
+
+Const TableName_TRHData = "Silvia1_AirTemp_vent"
+Const FileName_TRHData = "CRD:" & TableName_TRHData & "_"
+Public LastWrittenFile_TRHData As String * 40
+Const FileInterval_AirTemp = 6      '[h], every 6h create a new file
+Const FileTimeOnInt_AirTemp = 0      'new files 
+
+Const TableName_Service = "Silvia1_ServiceData"
+Const FileName_Service = "CRD:" & TableName_Service & "_"
+Const FileInterval_Service = 1       '[day], every week create a new file
+Const FileTimeOnInt_Service = 0      'new file every Monday
+Const TableSize_Service = Ceiling (FileInterval_Service * 24 * 60 / ServiceDataInterval * 1.2)
+  'file interval [d] & data interval [min], + 20% reserve
+Const MaxFiles_Service = 30          'allocate memory for 30 days, one month
+Public LastWrittenFile_Service As String * 40
+
+Const TableName_Status = "Silvia1_StationStat"
+Const FileName_Status = "CRD:" & TableName_Status & "_"
+Const MaxLines_Status = 100          'create a new file after 100 records
+Public LastWrittenFile_Status As String * 40
+Const StatTableInterval = 24        'interval of status-table called [h], daily
+Const StatTableTimeOnInt = 0        'time into interval [h], midnight
+
+'***   data tables   *****************************************************************
+DataTable (TableName_sonics,True,-1) 
+    'this table contains all data from the
+    '  CSAT3B and the CSAT3
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile(FileName_sonics,64,-1,FileTimeOnInt_sonics,FileInterval_sonics,hr,-1,LastWrittenFile_sonics)
+  Sample(5, CSAT3B_Vals(1), IEEE4)
+  Sample(5, CSAT3_Vals(1), IEEE4)
+EndTable
+
+DataTable (TableName_TRHData,TRHData_WriteToTable,-1)
+    'this table contains the air temperature measured with the HygroVue10
+    '  its storing interval is during day the same as the
+    '  slow scan interval and during night at a certain interval, set by a query in
+    '  the slow scan although the table is called in the fast scan
+  DataInterval (0,SlowScanInterval,sec,0)      'samples from each slow scan
+  TableFile (FileName_TRHData,64,-1,FileTimeOnInt_AirTemp,FileInterval_AirTemp,hr,-1,LastWrittenFile_TRHData)
+  Sample (1,AirTC,IEEE4)                   'air temperature from HygroVue10
+  Sample (1,RH,IEEE4)                      'relative humidity
+  Sample (1,Dewp,IEEE4)                    'dewpoint
+  Sample (1,VP,IEEE4)                      'vapor pressure
+  FieldNames ("AirTemp:ventilated temperature reference [°C],RH:relative humidity [%],Dewp:dewpoint [°C],VP:vapor pressure [kPa]")
+EndTable
+
+DataTable (TableName_Service,True,TableSize_Service)
+    'this table contains the service data, such as supply voltage or recorded errors
+  DataInterval (0,ServiceDataInterval,min,0)
+  TableFile (FileName_Service,64,MaxFiles_Service,FileTimeOnInt_Service,FileInterval_Service,day,0,LastWrittenFile_Service)
+  Sample (1,LoggerTemp,FP2)                    'loggers panel temperature
+  FieldNames ("LoggerTemperature:temperature of loggers panel [°C]")
+  Average (1,BatteryVoltage,FP2,False)         'stations power supply, average voltage
+  FieldNames ("BatteryVoltage_avg:loggers average supply voltage [V]")
+  Minimum (1,BatteryVoltage,FP2,False,False)   'minimal supply voltage (not MinRun)
+  FieldNames ("BatteryVoltage_min:loggers minimum supply voltage [V]")
+EndTable
+
+DataTable (TableName_CSAT3B_Monitor,True,-1)
+  DataInterval (0,SlowScanInterval,sec,10)
+  TableFile (FileName_CSAT3B_Monitor,64,-1,FileTimeOnInt_CSAT3B_Monitor,FileInterval_CSAT3B_Monitor,hr,0,LastWrittenFile_CSAT3B_Monitor)
+  Sample (4,CSAT3B_MonitorVals(1),IEEE4)
+EndTable
+
+DataTable (TableName_Status,True,MaxLines_Status)
+    'this table contains several status information about the station
+ ' DataInterval (0,1,day,-1)         'called manually weekly
+  TableFile (FileName_Status,64,1,MaxLines_Status,0,day,0,LastWrittenFile_Status)
+  Sample (1,Logger,String)
+  FieldNames ("LoggerName:one from settings")
+  Sample (1,ProgramName,String)
+  FieldNames ("ProgramName:filename of program")
+  Sample (1,ProgStartTime,NSEC)
+  FieldNames ("ProgStartTime:time of program-start")
+  Sample (1,ProgramSignature,UINT2)
+  FieldNames ("ProgramSignature:signature of program")
+  Sample (1,ProgramErrors,UINT2)
+  FieldNames ("ProgramErrors:errors during compile or runtime")
+  Sample (1,CalibErrors,UINT2)
+  FieldNames ("CalibErrors:calibration errors")
+  Sample (1,BackupBattery,FP2)
+  FieldNames ("LithiumBattery:voltage of backup battery [V]")
+  Sample (1,CardsFreeMemory,UINT4)
+  FieldNames ("CardsFreeMemory:free memory on card [B]")
+  Sample (1,LastWrittenFile_TRHData,String)
+  FieldNames ("LastWrittenFile_TRHData:last file of reference temperature")
+  Sample (1,LastWrittenFile_sonics, String)
+  FieldNames ("LastWrittenFile_sonics: last file of sonics")
+  Sample (1, LastWrittenFile_CSAT3B_Monitor, String)
+  FieldNames ("LastWrittenFile_CSAT3B_Monitor: last file of CSAT monitor")
+EndTable
+
+'***   function & subroutines   ******************************************************
+Function GetStatus ()      'read some actual status data from Status-table
+  Logger = Status.StationName
+  ProgramName = Status.ProgName
+  ProgStartTime = Status.StartTime
+  ProgramSignature = Status.ProgSignature
+  ProgramErrors = Status.ProgErrors
+  CalibErrors = Status.ErrorCalib
+  BackupBattery = Status.LithiumBattery
+  If Status.CardStatus = "Card OK." Then       'test if a card is inserted
+    CardsFreeMemory = Status.CardBytesFree     'read how much space is left on SD-card
+  EndIf
+EndFunction
+
+'***   main program   ****************************************************************
+BeginProg
+
+  GetStatus()              'read station status and save the startup-values
+  CallTable TableName_Status
+
+'---   main scan loop   --------------------------------------------------------------
+  Scan (FastScanInterval,msec,3,0)
+    SW12 (SW12_1, 1, 0)              'switch power supply of CSATS on
+    SW12 (SW12_2, 1, 0)
+' do EC stuff
+    CSAT3B(CSAT3B_Vals(), 0, CSAT3B_SDMaddr, CSAT3B_Mode)
+      'read the data from CSAT3B; 0 for SDM-communication
+    CSAT3(CSAT3_Vals(), 1, CSAT3_SDMaddr, CSAT3_Command, 20)
+      'read the data from CSAT3B; 0 for SDM-communication
+      
+    CallTable TableName_sonics
+  '  CallTable TableName_TRHData
+  NextScan
+
+'---   slow scan loop   --------------------------------------------------------------
+  SlowSequence
+    Scan (SlowScanInterval,sec,0,0)
+      SDI12Recorder (TRHData,HygroVueSDIPort,HygroVueSDIaddr,HygroVueSDICommand,HygroVueSDIMult,HygroVueSDIOffs)
+
+      CallTable TableName_TRHData
+      
+      Battery (BatteryVoltage)       'measure the voltage of the supply
+      MinRun (BatteryVoltage_min,1,BatteryVoltage,BattMin_RunNr)
+        'calculate the minimum of the batterys voltage, to decide if power devices on
+      PanelTemp (LoggerTemp,250)     'to measure panels temp. again doesn't make sense
+      
+      CallTable TableName_Service
+
+      CSAT3BMonitor(CSAT3B_MonitorVals(), 0, CSAT3B_SDMaddr)
+      
+      CallTable(TableName_CSAT3B_Monitor)
+
+      If IfTime (StatTableTimeOnInt,StatTableInterval,Hr) Then
+        GetStatus()                  'record status 
+        CallTable TableName_Status
+      EndIf   
+    NextScan
+  EndSequence
+EndProg       

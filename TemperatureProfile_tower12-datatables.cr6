@@ -1,0 +1,260 @@
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-datatables.cr6        * author:   Ch. Buchli
+'* revision: v1.1.0                                           * date:     2021-02-22
+'*************************************************************************************
+'* main program:  TemperatureProfile_tower12-main.cr6
+'* description:   definition of all the data tables for the main program
+'*************************************************************************************
+'* revision history:
+'*    v0.0.1    first draft (copy of CR1000-code) & WIP (work in progress)
+'*    v0.0.3    complete datatables and some adaptions to them
+'*    v0.1.0    adapt some wrong variable names
+'*              resolve major problem that caused the compiler to crash, the use of
+'*              repetitions doesn't work for structure element, but only for arrays
+'*              further structure elements can't be used for WindVector and Average
+'*    v0.2.0    use tablename-constants to call the tables, add flag for slow table
+'*    v0.2.2    unified name of tables to shorter version
+'*    v0.2.3    adapt variable of status-table, change CardsFreeMemory-unit to kB
+'*    v0.2.4    average of all variables of CSAT3B_monitor-structures caused problem
+'*              to service table -> list them separately (instantaneous values)
+'*    v1.1.0    disable datatable Tower1_FastData with trigger-flag, commented all TCs
+'*              from Tower2_FastData and from Tower12_SlowData, add auxiliary
+'*              temperature from unventilated sensor of IRGASONs to FastData-tables,
+'*              add air pressure and temperature of IRGASON-tower2 to SlowData-table
+'*************************************************************************************
+
+'***   constants & variables for table and file handling  ****************************
+Const TableName_Tower1_FastData = "Tow1_FastData"
+Const FileName_Tower1_FastData = "CRD:" & TableName_Tower1_FastData & "_"
+Public LastWrittenFile_Tower1_FastData As String * 40
+ReadOnly LastWrittenFile_Tower1_FastData
+Const TableName_Tower2_FastData = "Tow2_FastData"
+Const FileName_Tower2_FastData = "CRD:" & TableName_Tower2_FastData & "_"
+Public LastWrittenFile_Tower2_FastData As String * 40
+ReadOnly LastWrittenFile_Tower2_FastData
+Const TableName_Tower12_SlowData = "Tow1&2_SlowData"
+Public SlowData_WriteToTable As Boolean : ReadOnly SlowData_WriteToTable
+Const FileName_Tower12_SlowData = "CRD:" & TableName_Tower12_SlowData & "_"
+Public LastWrittenFile_Tower12_SlowData As String * 40
+ReadOnly LastWrittenFile_Tower12_SlowData
+
+Const FileInterval_FastData = 6      '[h], create four files per day
+  'with a data rate of 20Hz, it produces 432'000 records per file
+Const FileInterval_SlowData = 24     '[h], create one file per day
+  'with 5s data period, it would produce 17'280 records per file, but during night not 
+Const FileTimeOnInt = 0              'new file at midnight, 6:00, noon & 18:00
+
+Const TableName_Service = "Tow1&2_ServiceData"
+Const FileName_Service = "CRD:" & TableName_Service & "_"
+Const FileInterval_Service = 7       '[day], every week create a new file
+Const FileTimeOnInt_Service = 0      'new file every Monday
+Const TableSize_Service = Ceiling (FileInterval_Service * 24 * 60 / ServcieDataInterval * 1.2)
+  'file interval [d] & data interval [min], + 20% reserve
+Const MaxFiles_Service = 52          'allocate memory for 52 weeks, one year
+Public LastWrittenFile_Tower12_Service As String * 40
+ReadOnly LastWrittenFile_Tower12_Service
+
+Const TableName_Status = "Tow1&2_StationStatus"
+Const FileName_Status = "CRD:" & TableName_Status & "_"
+Const MaxLines_Status = 100          'create a new file after 100 records
+Public LastWrittenFile_Tower12_Status As String * 40
+ReadOnly LastWrittenFile_Tower12_Status
+
+Const StatTableInterval = 168        'interval of status-table called [h], weekly
+Const StatTableTimeOnInt = 10        'time into interval [h], Monday 10 a.m.
+
+'***   data tables   *****************************************************************
+DataTable (TableName_Tower1_FastData,False,-1)  'this table contains all data from the
+    '  tower 1s sensors, meaning 5 thermocouples and one IRGASON
+    'for the Tschuggen-setup this is not used -> therefore trigger is False
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile (FileName_Tower1_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower1_FastData)
+  Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
+  FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+  Sample (1,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+  FieldNames ("Tower1_WindIRGASON_Ux:tower1 IRGASON Ux [m/s]")
+  Sample (1,IRGASON_tower1.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower1_WindIRGASON_Uy:tower1 IRGASON Uy [m/s]")
+  Sample (1,IRGASON_tower1.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower1_WindIRGASON_Uz:tower1 IRGASON Uz [m/s]")
+  Sample (1,IRGASON_tower1.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower1_TempAirSonicIRGASON:tower1 IRGASON TempAirSonic [°C]")
+  Sample (1,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+  FieldNames ("Tower1_CO2dens:tower1 IRGASON CO2 density [mg/m³]")
+  Sample (1,IRGASON_tower1.H2O_dens,IEEE4)
+  FieldNames ("Tower1_H2Odens:tower1 IRGASON H2O density [g/m³]")
+ ' Sample (4,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+ ' Sample (2,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+     'this syntax causes problems for the compiler, the use of repetitions seems to
+     '  work only for arrays but not for structure elements
+  Sample (1,IRGASON_tower1.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("Tower1_TempAirIRGASON:tower1 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower1.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("Tower1_PresAir:tower1 IRGASON air pressure [kPa]")
+  Sample (1,IRGASON_tower1.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
+  FieldNames ("Tower1_DiagSonic:tower1 IRGASON sonics diag")
+  Sample (1,IRGASON_tower1.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
+  FieldNames ("Tower1_DiagIrgason:tower1 IRGASON gas analyser diag")
+EndTable
+  
+DataTable (TableName_Tower2_FastData,True,-1)  'this table contains all data from the
+    '  tower 2s sensors, meaning 10 thermocouples, one IRGASON and 2 CSAT3B
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile (FileName_Tower2_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower2_FastData)
+'  Sample (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4)
+'    'values from all 10 thermocouples of tower 2 [°C]
+'  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+  Sample (1,IRGASON_tower2.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+  FieldNames ("Tower2_WindIRGASON_Ux:tower2 IRGASON Ux [m/s]")
+  Sample (1,IRGASON_tower2.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindIRGASON_Uy:tower2 IRGASON Uy [m/s]")
+  Sample (1,IRGASON_tower2.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindIRGASON_Uz:tower2 IRGASON Uz [m/s]")
+  Sample (1,IRGASON_tower2.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirSonicIRGASON:tower2 IRGASON TempAirSonic [°C]")
+  Sample (1,IRGASON_tower2.CO2_dens,IEEE4)     'both gas density values of IRGASON
+  FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
+  Sample (1,IRGASON_tower2.H2O_dens,IEEE4)
+  FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
+ ' Sample (4,IRGASON_tower2.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+ ' Sample (2,IRGASON_tower2.CO2_dens,IEEE4)     'both gas density values of IRGASON
+     'this syntax causes problems for the compiler, the use of repetitions seems to
+     '  work only for arrays but not for structure elements
+  Sample (1,IRGASON_tower2.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("Tower2_TempAirIRGASON:tower2 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower2.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("Tower2_PresAir:tower2 IRGASON air pressure [kPa]")
+  Sample (1,IRGASON_tower2.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
+  FieldNames ("Tower2_DiagSonicIRGASON:tower2 IRGASON sonics diag")
+  Sample (1,IRGASON_tower2.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
+  FieldNames ("Tower2_DiagIrgason:tower2 IRGASON gas analyser diag")
+  Sample (1,CSAT3B_lower.WindSpeed_Ux,IEEE4)   'wind values of lower CSAT3B
+  FieldNames ("Tower2_WindCSATlower_Ux:tower2 lower CSAT3B Ux [m/s]")
+  Sample (1,CSAT3B_lower.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindCSATlower_Uy:tower2 lower CSAT3B Uy [m/s]")
+  Sample (1,CSAT3B_lower.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindCSATlower_Uz:tower2 lower CSAT3B Uz [m/s]")
+  Sample (1,CSAT3B_lower.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirCSATlower:tower2 lower CSAT3B TempAirSonic [°C]")
+ ' Sample (4,CSAT3B_lower.WindSpeed_Ux,IEEE4)   'wind values of lower CSAT3B
+  Sample (1,CSAT3B_lower.DiagSonic,UINT2)      'diagnostic flag of lower CSAT3B
+  FieldNames ("Tower2_DiagSonicCSATlower:tower2 lower CSAT3B diag")
+  Sample (1,CSAT3B_upper.WindSpeed_Ux,IEEE4)   'wind values of upper CSAT3B
+  FieldNames ("Tower2_WindCSATupper_Ux:tower2 upper CSAT3B Ux [m/s]")
+  Sample (1,CSAT3B_upper.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindCSATupper_Uy:tower2 upper CSAT3B Uy [m/s]")
+  Sample (1,CSAT3B_upper.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindCSATupper_Uz:tower2 upper CSAT3B Uz [m/s]")
+  Sample (1,CSAT3B_upper.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirCSATupper:tower2 upper CSAT3B TempAirSonic [°C]")
+ ' Sample (4,CSAT3B_upper.WindSpeed_Ux,IEEE4)   'wind values of upper CSAT3B
+  Sample (1,CSAT3B_upper.DiagSonic,UINT2)      'diagnostic flag of upper CSAT3B
+  FieldNames ("Tower2_DiagSonicCSATupper:tower2 upper CSAT3B diag")
+EndTable
+
+DataTable (TableName_Tower12_SlowData,SlowData_WriteToTable,-1)
+    'this table contains the ventilated reference air temperature (PRT) and some other
+    '  more detailed and averaged data, its storing interval is during day the same as
+    '  the slow scan interval and during night at a certain interval, set by a query
+    '  in the slow scan although the table is called in the fast scan
+  DataInterval (0,SlowScanInterval,sec,0)      'samples of each slow scan
+  TableFile (FileName_Tower12_SlowData,64,-1,FileTimeOnInt,FileInterval_SlowData,hr,-1,LastWrittenFile_Tower12_SlowData)
+  Sample (1,AirTempPRT,IEEE4)                  'air temperature from ventilated PRT
+  FieldNames ("AirTempPRT_vent:temperature reference [°C]")
+  Sample (1,AirTC,IEEE4)
+  FieldNames ("AirTemp_HygroVue:temperature reference [°C],RH:relative humidity [%],Dewp:dewpoint [°C],VP:vapor pressure [kPa]")
+  Sample (1,IRGASON_tower2.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("TempAirIRGASON:tower2 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower2.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("PresAir:tower2 IRGASON air pressure [kPa]")
+'  WindVector (1,IRGASON_tower2.WindSpeed_Uy,IRGASON_tower2.WindSpeed_Ux,IEEE4,NOT(IRGASON_tower2.IrgasonEnable),20,1,2)
+'  FieldNames ("Tower2_WindSpeedScalMean_IRGASON:tower2 IRGASON mean scalar speed [m/s],Tower2_WindSpeedVectMean_IRGASON:tower2 IRGASON mean vector magnitude speed [m/s],Tower2_WindDirVectMean_IRGASON:tower2 IRGASON mean vector direction [°],Tower2_WindDirStdDev_IRGASON:tower2 IRGASON standard deviation direction [°]")
+    'mean scalar wind speed = Σscalars/N, mean vector magnitude speed = 
+    '  magnitude_Σvectors / N, mean vector direction = direction_Σvectors,
+    '  standard deviation direction = StdDev over all Θ
+'  Average (1,IRGASON_tower2.CO2_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+'  FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
+'  Average (1,IRGASON_tower2.H2O_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+'  FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
+'  Average (1,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+'  FieldNames ("Tower2_TempAir_IRGASON:tower2 IRGASON air temperature [°C]")
+'  Average (1,IRGASON_tower2.PressureAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+'  FieldNames ("Tower2_PressureAir_IRGASON:tower2 IRGASON air pressure [kPa]")
+ '  Average (2,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+'  WindVector (1,CSAT3B_upper.WindSpeed_Uy,CSAT3B_upper.WindSpeed_Ux,IEEE4,NOT(CSAT3B_upper.CSAT3BEnable),20,1,2)
+'  FieldNames ("Tower2_WindSpeedScalMean_upperCSAT3B:tower2 upper CSAT3B mean scalar speed [m/s],Tower2_WindSpeedVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector magnitude speed [m/s],Tower2_WindDirVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector direction [°],Tower2_WindDirStdDev_upperCSAT3B:tower2 upper CSAT3B standard deviation direction [°]")
+
+'  Average (NumberOfTC_tower1,AirTempTC(),IEEE4,False)
+'    'values from all 5 thermocouples of tower 1 [°C]
+'  FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+'  Average (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4,False)
+'    'values from all 10 thermocouples of tower 2 [°C]
+'  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+EndTable
+
+DataTable (TableName_Service,True,TableSize_Service)
+    'this table contains the service data, such as supply voltage or recorded errors
+  DataInterval (0,ServcieDataInterval,min,0)
+  TableFile (FileName_Service,64,MaxFiles_Service,FileTimeOnInt_Service,FileInterval_Service,day,0,LastWrittenFile_Tower12_Service)
+  Sample (1,LoggerTemp,FP2)                    'loggers panel temperature
+  FieldNames ("LoggerTemperature:temperature of loggers panel [°C]")
+  Average (1,BatteryVoltage,FP2,False)         'stations power supply, average voltage
+  FieldNames ("BatteryVoltage_avg:loggers average supply voltage [V]")
+  Minimum (1,BatteryVoltage,FP2,False,False)   'minimal supply voltage (not MinRun)
+  FieldNames ("BatteryVoltage_min:loggers minimum supply voltage [V]")
+  Average (1,VentilatorSpeed,FP2,False)        'average frequency of ventilator
+  FieldNames ("VentilatorSpeed:fan-frequency of ventilated radiation shield [Hz]")
+'  Average (1,CSAT3B_lower_mon,CSAT3B_monitor_t,NOT(CSAT3B_lower.CSAT3BEnable))
+'  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+'  Average (1,CSAT3B_upper_mon,CSAT3B_monitor_t,NOT(CSAT3B_upper.CSAT3BEnable))
+'  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+  Sample (1,CSAT3B_lower_mon.ElectronicsTemp,FP2)        'service data of lower CSAT3B
+  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C]")
+  Sample (1,CSAT3B_lower_mon.ElectronicsRelHum,FP2)
+  FieldNames ("lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%]")
+  Sample (1,CSAT3B_lower_mon.TiltPitch,FP2)
+  FieldNames ("lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°]")
+  Sample (1,CSAT3B_lower_mon.TiltRoll,FP2)
+  FieldNames ("lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+  Sample (1,CSAT3B_upper_mon.ElectronicsTemp,FP2)        'service data of upper CSAT3B
+  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C]")
+  Sample (1,CSAT3B_upper_mon.ElectronicsRelHum,FP2)
+  FieldNames ("upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%]")
+  Sample (1,CSAT3B_upper_mon.TiltPitch,FP2)
+  FieldNames ("upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°]")
+  Sample (1,CSAT3B_upper_mon.TiltRoll,FP2)
+  FieldNames ("upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+EndTable
+
+DataTable (TableName_Status,True,MaxLines_Status)
+    'this table contains several status information about the station
+  'DataInterval (0,1,day,-1)         'called manually weekly
+  TableFile (FileName_Status,64,1,MaxLines_Status,0,day,0,LastWrittenFile_Tower12_Status)
+  Sample (1,Logger,String)
+  FieldNames ("LoggerName:one from settings")
+  Sample (1,ProgramName,String)
+  FieldNames ("ProgramName:filename of program")
+  Sample (1,ProgStartTime,NSEC)
+  FieldNames ("ProgStartTime:time of program-start")
+  Sample (1,ProgramSignature,UINT2)
+  FieldNames ("ProgramSignature:signature of program")
+  Sample (1,ProgramErrors,UINT2)
+  FieldNames ("ProgramErrors:errors during compile or runtime")
+  Sample (1,CalibErrors,UINT2)
+  FieldNames ("CalibErrors:calibration errors")
+  Sample (1,BackupBattery,FP2)
+  FieldNames ("LithiumBattery:voltage of backup battery [V]")
+  Sample (1,CardsFreeMemory,UINT4)
+  FieldNames ("CardsFreeMemory:free memory on card [kB]")
+  Sample (1,LastWrittenFile_Tower1_FastData,String)
+  FieldNames ("LastWrittenFile_Tower1_FastData:last fast-file of tower 1")
+  Sample (1,LastWrittenFile_Tower2_FastData,String)
+  FieldNames ("LastWrittenFile_Tower2_FastData:last fast-file of tower 2")
+  Sample (1,LastWrittenFile_Tower12_SlowData,String)
+  FieldNames ("LastWrittenFile_Tower2_SlowData:last slow-file of tower 2")
+EndTable

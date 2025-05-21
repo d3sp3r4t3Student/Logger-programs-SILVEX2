@@ -48,7 +48,7 @@ ConstTable
   Const IRGASON_normalOutCMD = 1     'EC100-command for normal output - Ux,Uy,Uz,Ts,
     'sonic diag,CO2,H2O,gas diag,ambient temp,ambient pressure,CO2 signal,H2O signal
 
-  Const NumberOfTC_tower1 = 5        'amount of thermocouples on tower 1
+  Const NumberOfTC_tower1 = 0        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
   Const NumberOfTC_tower2 = 10       'amount of thermocouples on tower 2
 
   Const IRGASON_tower1_Pwr = C1      'power control of IRGASON on tower 1, NO
@@ -57,8 +57,8 @@ ConstTable
   Const CSAT3B_upper_Pwr = SW12_2    'switched 12V for upper CSAT3B
 
   Const TC_Type = 1        'TypeE, FW-thermocouples are made of chromel-constantan
-  Const TC_1_tower1_DIFFch = 1       'differential channel of first TC of tower 1
-  Const TC_1_tower2_DIFFch = TC_1_tower1_DIFFch + NumberOfTC_tower1
+  Const TC_1_tower1_DIFFch = 11       'differential channel of first TC of tower 1
+  Const TC_1_tower2_DIFFch = 1
                            'differential channel of first thermocouple of tower 2
 '  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
 

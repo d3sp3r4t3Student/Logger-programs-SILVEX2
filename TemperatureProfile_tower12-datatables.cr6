@@ -71,8 +71,8 @@ DataTable (TableName_Tower1_FastData,False,-1)  'this table contains all data fr
     'for the Tschuggen-setup this is not used -> therefore trigger is False
   DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
   TableFile (FileName_Tower1_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower1_FastData)
-  Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
-  FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+  'Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
+  'FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
   Sample (1,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
   FieldNames ("Tower1_WindIRGASON_Ux:tower1 IRGASON Ux [m/s]")
   Sample (1,IRGASON_tower1.WindSpeed_Uy,IEEE4)
@@ -104,9 +104,9 @@ DataTable (TableName_Tower2_FastData,True,-1)  'this table contains all data fro
     '  tower 2s sensors, meaning 10 thermocouples, one IRGASON and 2 CSAT3B
   DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
   TableFile (FileName_Tower2_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower2_FastData)
-'  Sample (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4)
-'    'values from all 10 thermocouples of tower 2 [°C]
-'  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+  Sample (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4)
+    'values from all 10 thermocouples of tower 2 [°C]
+  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
   Sample (1,IRGASON_tower2.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
   FieldNames ("Tower2_WindIRGASON_Ux:tower2 IRGASON Ux [m/s]")
   Sample (1,IRGASON_tower2.WindSpeed_Uy,IEEE4)
@@ -172,29 +172,29 @@ DataTable (TableName_Tower12_SlowData,SlowData_WriteToTable,-1)
   FieldNames ("TempAirIRGASON:tower2 IRGASON TempAir [°C]")
   Sample (1,IRGASON_tower2.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
   FieldNames ("PresAir:tower2 IRGASON air pressure [kPa]")
-'  WindVector (1,IRGASON_tower2.WindSpeed_Uy,IRGASON_tower2.WindSpeed_Ux,IEEE4,NOT(IRGASON_tower2.IrgasonEnable),20,1,2)
-'  FieldNames ("Tower2_WindSpeedScalMean_IRGASON:tower2 IRGASON mean scalar speed [m/s],Tower2_WindSpeedVectMean_IRGASON:tower2 IRGASON mean vector magnitude speed [m/s],Tower2_WindDirVectMean_IRGASON:tower2 IRGASON mean vector direction [°],Tower2_WindDirStdDev_IRGASON:tower2 IRGASON standard deviation direction [°]")
+  WindVector (1,IRGASON_tower2.WindSpeed_Uy,IRGASON_tower2.WindSpeed_Ux,IEEE4,NOT(IRGASON_tower2.IrgasonEnable),20,1,2)
+  FieldNames ("Tower2_WindSpeedScalMean_IRGASON:tower2 IRGASON mean scalar speed [m/s],Tower2_WindSpeedVectMean_IRGASON:tower2 IRGASON mean vector magnitude speed [m/s],Tower2_WindDirVectMean_IRGASON:tower2 IRGASON mean vector direction [°],Tower2_WindDirStdDev_IRGASON:tower2 IRGASON standard deviation direction [°]")
     'mean scalar wind speed = Σscalars/N, mean vector magnitude speed = 
     '  magnitude_Σvectors / N, mean vector direction = direction_Σvectors,
     '  standard deviation direction = StdDev over all Θ
-'  Average (1,IRGASON_tower2.CO2_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
-'  FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
-'  Average (1,IRGASON_tower2.H2O_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
-'  FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
-'  Average (1,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
-'  FieldNames ("Tower2_TempAir_IRGASON:tower2 IRGASON air temperature [°C]")
-'  Average (1,IRGASON_tower2.PressureAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
-'  FieldNames ("Tower2_PressureAir_IRGASON:tower2 IRGASON air pressure [kPa]")
- '  Average (2,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
-'  WindVector (1,CSAT3B_upper.WindSpeed_Uy,CSAT3B_upper.WindSpeed_Ux,IEEE4,NOT(CSAT3B_upper.CSAT3BEnable),20,1,2)
-'  FieldNames ("Tower2_WindSpeedScalMean_upperCSAT3B:tower2 upper CSAT3B mean scalar speed [m/s],Tower2_WindSpeedVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector magnitude speed [m/s],Tower2_WindDirVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector direction [°],Tower2_WindDirStdDev_upperCSAT3B:tower2 upper CSAT3B standard deviation direction [°]")
+  Average (1,IRGASON_tower2.CO2_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
+  Average (1,IRGASON_tower2.H2O_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
+  Average (1,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  FieldNames ("Tower2_TempAir_IRGASON:tower2 IRGASON air temperature [°C]")
+  Average (1,IRGASON_tower2.PressureAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  FieldNames ("Tower2_PressureAir_IRGASON:tower2 IRGASON air pressure [kPa]")
+  Average (2,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  WindVector (1,CSAT3B_upper.WindSpeed_Uy,CSAT3B_upper.WindSpeed_Ux,IEEE4,NOT(CSAT3B_upper.CSAT3BEnable),20,1,2)
+  FieldNames ("Tower2_WindSpeedScalMean_upperCSAT3B:tower2 upper CSAT3B mean scalar speed [m/s],Tower2_WindSpeedVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector magnitude speed [m/s],Tower2_WindDirVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector direction [°],Tower2_WindDirStdDev_upperCSAT3B:tower2 upper CSAT3B standard deviation direction [°]")
 
 '  Average (NumberOfTC_tower1,AirTempTC(),IEEE4,False)
 '    'values from all 5 thermocouples of tower 1 [°C]
 '  FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
-'  Average (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4,False)
-'    'values from all 10 thermocouples of tower 2 [°C]
-'  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+  Average (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4,False)
+    'values from all 10 thermocouples of tower 2 [°C]
+  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
 EndTable
 
 DataTable (TableName_Service,True,TableSize_Service)
@@ -209,10 +209,10 @@ DataTable (TableName_Service,True,TableSize_Service)
   FieldNames ("BatteryVoltage_min:loggers minimum supply voltage [V]")
   Average (1,VentilatorSpeed,FP2,False)        'average frequency of ventilator
   FieldNames ("VentilatorSpeed:fan-frequency of ventilated radiation shield [Hz]")
-'  Average (1,CSAT3B_lower_mon,CSAT3B_monitor_t,NOT(CSAT3B_lower.CSAT3BEnable))
-'  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
-'  Average (1,CSAT3B_upper_mon,CSAT3B_monitor_t,NOT(CSAT3B_upper.CSAT3BEnable))
-'  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+  Average (1,CSAT3B_lower_mon,CSAT3B_monitor_t,NOT(CSAT3B_lower.CSAT3BEnable))
+  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+  Average (1,CSAT3B_upper_mon,CSAT3B_monitor_t,NOT(CSAT3B_upper.CSAT3BEnable))
+  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
   Sample (1,CSAT3B_lower_mon.ElectronicsTemp,FP2)        'service data of lower CSAT3B
   FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C]")
   Sample (1,CSAT3B_lower_mon.ElectronicsRelHum,FP2)

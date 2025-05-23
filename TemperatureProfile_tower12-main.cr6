@@ -187,10 +187,9 @@ BeginProg
         'measure HygroVue
       PulseCount(WS_ms, 1, mSec, YoungAnemWSPulseDIFF, 1, 0.098, 0)
         'measure windspeed of the Young anemometer
-      BrHalf(WindDir, 1, mV2500, V116!27, YoungAnemVXPort, YoungAnemWDSigSE, 2500, True, 0, _60Hz, 355, 0)
+      BrHalf(WindDir, 1, mV5000, YoungAnemWDSigSE, YoungAnemVXPort, YoungAnemWDSigSE, 2500, True, 20000, 60, 355, 0)
         'measure wind direction of the Young anemometer
-      If WindDir >= 360 Then WindDir = 0
-      If WindDir < 0 Then WindDir = 0
+      If WindDir>=355 Or WindDir<0 Then WindDir=0
         'Correct invalid young anemometer wind direction readings
         
       Battery (BatteryVoltage)       'measure the voltage of the supply

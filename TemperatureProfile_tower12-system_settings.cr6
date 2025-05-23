@@ -93,21 +93,10 @@ ConstTable
   Const HygroVueSDIOffs = 0          'offset
   Const TRHData_WriteToTable = True
   
-  '--- Wind Speed (WS) Channel Assignments ---
-
-  Const YoungAnemWSPulseDIFF = V116!14      ' DIFF14 (SE28/SE27) for pulse input
-
-  Const YoungAnemWSRef = V116!0             ' SGND (reference ground; used internally by PulseCount)
-
-  
-  '--- Wind Direction (WD) Channel Assignments ---
-
-  Const YoungAnemVXPort   = V116!4          ' VX4 (excitation)
-
-  Const YoungAnemWDSigSE  = V116!27         ' SE27 (single-ended signal input)
-
-  Const YoungAnemWDRef    = V116!0          ' SGND (reference ground; not explicitly used in BrHalf when single-ended)
-  
+  ' set ports of Young Anemometer
+  Const YoungAnemVXPort = 4
+  Const YoungAnemWSPulseDIFF = 14
+  Const YoungAnemWDSigSE = 27
 
 EndConstTable
 

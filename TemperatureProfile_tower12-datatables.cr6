@@ -174,6 +174,8 @@ DataTable (TableName_Tower12_SlowData,SlowData_WriteToTable,-1)
   FieldNames ("PresAir:tower2 IRGASON air pressure [kPa]")
   WindVector (1,IRGASON_tower2.WindSpeed_Uy,IRGASON_tower2.WindSpeed_Ux,IEEE4,NOT(IRGASON_tower2.IrgasonEnable),20,1,2)
   FieldNames ("Tower2_WindSpeedScalMean_IRGASON:tower2 IRGASON mean scalar speed [m/s],Tower2_WindSpeedVectMean_IRGASON:tower2 IRGASON mean vector magnitude speed [m/s],Tower2_WindDirVectMean_IRGASON:tower2 IRGASON mean vector direction [°],Tower2_WindDirStdDev_IRGASON:tower2 IRGASON standard deviation direction [°]")
+  WindVector(1, WS_ms, WindDir, FP2, False, 0, 0, 0)
+  FieldNames("Windspeed_YoungAnem,WindDir_YoungAnem,WindDir_std_YoungAnem")
     'mean scalar wind speed = Σscalars/N, mean vector magnitude speed = 
     '  magnitude_Σvectors / N, mean vector direction = direction_Σvectors,
     '  standard deviation direction = StdDev over all Θ

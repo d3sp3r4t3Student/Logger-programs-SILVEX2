@@ -103,6 +103,12 @@ Units RH=%
 Units Dewp=Deg C
 Units VP=kPa
 
+' Young anemometer variables
+Public WS_ms 'wind speed in m/s
+Public WindDir 'wind dir in degrees
+Units WS_ms = m/s
+Units WindDir = Degrees
+
 Public LoggerTemp : Units LoggerTemp = °c      'system variables
 Public BatteryVoltage : Units BatteryVoltage = V
 Public BatteryVoltage_min : Units BatteryVoltage_min = V
@@ -179,7 +185,14 @@ BeginProg
         'calculate the exact temperature with the calibration coefficients
       SDI12Recorder (TRHData,HygroVueSDIPort,HygroVueSDIaddr,HygroVueSDICommand,HygroVueSDIMult,HygroVueSDIOffs)
         'measure HygroVue
-
+      PulseCount(WS_ms, 1, mSec, YoungAnemWSPulseDIFF, 1, 0.098, 0)
+        'measure windspeed of the Young anemometer
+      BrHalf(WindDir, 1, mV2500, V116!27, YoungAnemVXPort, YoungAnemWDSigSE, 2500, True, 0, _60Hz, 355, 0)
+        'measure wind direction of the Young anemometer
+      If WindDir >= 360 Then WindDir = 0
+      If WindDir < 0 Then WindDir = 0
+        'Correct invalid young anemometer wind direction readings
+        
       Battery (BatteryVoltage)       'measure the voltage of the supply
       MinRun (BatteryVoltage_min,1,BatteryVoltage,BattMin_RunNr)
         'calculate the minimum of the batterys voltage, to decide if power devices on

@@ -14,6 +14,12 @@
 Const CSAT3B_Mode = 0       'measurements triggered by the logger
 Const CSAT3_Command = 91    'trigger and get sonic temperature and wind data
 
+Const KelvinToCelsius = -273.15      'for conversion from °K to °C, +273.15°
+Const FracToPercent = 100            'for conversion from a fraction (0-1) to percent
+Const KiloToHecto = 10               'for conversion from e.g. kPa to hPa
+Const toMilli = 1000                 'for conversion from e.g. m to mm
+Const toKiloB = 2^10                 ' = 1024, for conversion from B to kB
+
 '***   constants & configuration settings   ******************************************
 StationName (Silvia1)                     'assign stations name to the logger
 
@@ -22,19 +28,28 @@ ConstTable
   Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
   Const ServiceDataInterval = 30    'interval for general service data [min]
 
-  Const CSAT3B_SDMaddr = 3          'SDM address of CSAT3B
-  Const CSAT3_SDMaddr = 9            'SDM address of CSAT3
+  Const CSAT3B_upper_CPIaddr = 30          'CPI address of upper CSAT3B
+  Const CSAT3B_lower_CPIaddr = 20          'CPI address of lower CSAT3B
+  Const CSAT3_SDMaddr = 9                  'SDM address of CSAT3, if not working try 11
+  Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
+  Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
 
-  Const PRT_DIFFch = 7     'first differential channel of 4 wire measurement
-  Const PRT_VXch = 1       'Vx1, exicitation channel for PRT-measurement
+  Const NumberOfTC = 5        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
+  Const TC_Type = 1         'TypeE, FW-thermocouples are made of chromel-constantan
+  Const TC_DIFFch = 1       'differential channel of 1st TC
+'  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
+
+  Const PRT_DIFFch = 7    'first channel of 4 wire measurement 7 = SE13 (right click on func parameter to see list of options)
+  Const PRT_VXch = Vx4      'exicitation on VX4 for PRT-measurement
   Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
-  Const PRT_Vrange = 2     '±250mV input range for BrHalf4W for R_PRT with 200µA
-                           '  to prevent self heating of the PRT
-  Const PRT_Vex = 2350     '2350mV exitation voltage, to stay below 200µA I_PRT
-  Const VentilatorPch = 1  'P1, pulse channel for fan of radiation shield
+  Const PRT_Vrange = mV200 '±200mV input range for BrHalf4W for R_PRT with less than
+                           '  200µA to prevent self heating of the PRT
+  Const PRT_Vex = 2050     '2050mV exitation voltage to correspond to input range
 
-  Const FanCtrlPort = 9    'SW12 can also be used with PortSet-function as number 9
-  Const FanPwrBattThreshold = 11.5   'if battery drops below, switch ventilator off [V]
+  Const VentilatorPch = P2 'pulse channel for fan of radiation shield
+
+  Const FanCtrlPwr = C2             'power control of ventilator, NO
+  Const FanPwrBattThreshold = 12.0   'if battery drops below, switch ventilator off [V]
   Const BattMin_Time = 15            'record batterys minimum over this time [min]
   Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
   Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
@@ -45,10 +60,24 @@ ConstTable
   Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
     '  reference temperature into datatable, same as for fan at night [s]
 
-  Const HygroVueSDIPort = C5         'HygroVue measurements are triggered using SDI12Recorder Command, using port C5
-  Const HygroVueSDIaddr = "0"        'default SDIaddr as only HygroVue is connected to C5
-  Const HygroVueSDICommand = "M3!"   'measures all available data (T, RH, dewpoint, vapor pressure)
-  Const HygroVueSDIMult = 1          'multiplication factor
-  Const HygroVueSDIOffs = 0          'offset
-  Const TRHData_WriteToTable = True
+  Const PRT_TS32038 = False           'choose which PRT-sensor is used
+  Const PRT_TS32110 = True          'coefficients are set by conditional compilation
+  
+    '***   calibration coefficients of PRTs (platinum resistance thermometer)   ***
+  #If PRT_TS32038 Then
+    Const PRTcalibCoeff0 = -250.836943           'C0 for SN TS32038
+    Const PRTcalibCoeff1 = 2.401971*10^-1        'C1
+    Const PRTcalibCoeff2 = 1.058416*10^-5        'C2
+  #EndIf
+  #If PRT_TS32110 Then
+    Const PRTcalibCoeff0 = -251.580742           'C0 for SN TS32110
+    Const PRTcalibCoeff1 = 2.403799*10^-1        'C1
+    Const PRTcalibCoeff2 = 1.106622*10^-5        'C2
+  #EndIf
+
+'  ' set ports of Young Anemometer
+'  Const YoungAnemVXPort = Vx3
+'  Const YoungAnemWSPulseDIFF = P1
+'  Const YoungAnemWDSigSE = 11
+
 EndConstTable

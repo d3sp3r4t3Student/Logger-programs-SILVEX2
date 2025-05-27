@@ -25,7 +25,7 @@
 '*************************************************************************************
 
 '***   constants & configuration settings   ******************************************
-StationName (TemperatureProfile_Tower1&2-Station)  'assign stations name to the logger
+StationName (TemperatureProfile_Tower12-Station)  'assign stations name to the logger
 'StationName (TemperatureProfile@SLF_1)            'different examples for the
 'StationName (TemperatureProfile_Tower3@Dischma)   '  name of the station
 'StationName (TempProfile@2'783'830/1'187'440)
@@ -33,7 +33,7 @@ StationName (TemperatureProfile_Tower1&2-Station)  'assign stations name to the 
 ConstTable
   Const FastScanInterval = 50        'interval of main scan-loop in [ms], = 20Hz
   Const SlowScanInterval = 5         'interval of slow sequence scan in [s]
-  Const ServcieDataInterval = 30     'interval for general service data [min]
+  Const ServiceDataInterval = 30     'interval for general service data [min]
 
   Const ClockSync_ComPort = ComC3    'com-port used for the clock synchronisation
   Const ClockSync_SlavePakBus = 103  'pakbus-address clock-receiver, tower 3-station

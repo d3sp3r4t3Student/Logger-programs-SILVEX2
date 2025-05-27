@@ -1,0 +1,715 @@
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*   Measuring a profile of the air temperature above spots with and without snow,
+'*   during the snowmelt. Several thermocouple temperature sensors and one sensor
+'*   with a ventilated radiation shield, mounted on a pole on different heights.
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-main.cr6
+'* author:   Ch. Buchli
+'* date:     2021-02-22
+'* revision: v1.1.0
+'*************************************************************************************
+'* sensors T1: 5 x Campbell FW1/FW05 thermocouple
+'*             1 x Campbell IRGASON sonic anemometer and gas analyzer
+'* sensors T2: 10 x Campbell FW1/FW05 thermocouple
+'*             2 x Campbell CSAT3B sonic anemometer
+'*             1 x Campbell IRGASON sonic anemometer and gas analyzer
+'*             1 x Campbell 43347 RTD (1kΩ platinum resistor), with a
+'*                 Campbell 43502 ventilated radiation shield
+'* expansion:  1 x VOLT116, measurement module, connected over CPI
+'*************************************************************************************
+'* revision history:
+'*    v0.0.1    first draft (copy of CR1000-code) & WIP (work in progress)
+'*    v0.0.2    add variables of structure type
+'*    v0.0.3    continue on coding main part (scans and control), adapt PConfig in
+'*              PulseCount to CR6-function, adapt PortGet_UsrFct to CheckPort_UsrFct
+'*              for the use with CR6 (user functions), change how PRT coefficients
+'*              are set (system settings), complete datatables and some adaptions
+'*              to them (datatables)
+'*    v0.0.4    remove duplicate unit assignement in structures (system settings)
+'*    v0.0.5    change stations name, add SDM-port (system settings)
+'*    v0.1.0    resolve major problem that caused compiler to crash - structure
+'*              element mustn't be used with repetitions, neither with WindVector-
+'*              or Average-function inside data tables
+'*    v0.1.1    change to SW12 instead of PortSet for CSATs, add SDMBeginPort(),
+'*              remove conditionally call of EC100()
+'*    v0.2.0    switch off fan during night, respectively only for a give slot
+'*              use tablename-constants to call the tables
+'*              add clock synchronization between tower12-station and tower3-station
+'*    v0.2.1    change off-time for fan during night (0 -> 300)
+'*              remove mistake of the battery-query for the fan switch-off
+'*    v0.2.2    changed connections, PRT bridge-excitation U8->U5, ventilator-tacho
+'*              U6->U7 (as not possible at same pair) (system settings)
+'*              unified name of tables to shorter version (datatables)
+'*    v0.2.3    adapt variable of status-table (datatables)
+'*              change CardsFreeMemory-unit to kB (usr-functions & datatables)
+'*    v0.2.4    average of CSAT3B_monitor-values caused problem to service table
+'*              -> list them separately (instantaneous values) (datatables)
+'*    v0.2.5    change threshold for the fan from 11.5 to 12V (system settings)
+'*              slower interval for slow-data at low battery too, same as during night
+'*    v1.0.0    there was no increase of the version after tests, but it was directly
+'*              installed during Spring 2021
+'*    v1.1.0    adpations for deploying at Tschuggen in late winter 2023
+'*              -> the station is installed with only Tower 2, so only one IRGASON,
+'*                 only one CSAT3B and the ventilated 43347 RTD
+'*              therefore the following adaptions: disable datatable Tower1_FastData
+'*              with trigger-flag, commented all TCs from Tower2_FastData and from
+'*              Tower12_SlowData, add auxiliary temperature from unventilated sensor
+'*              of IRGASONs to FastData-tables, add air pressure and temperature of
+'*              IRGASON-tower2 to SlowData-table
+'*************************************************************************************
+'* use instructions and functional description:
+'*  - the main program can run on different loggers without adaptions, as the
+'*    stations name and some calibration parameters are configured in a separate file
+'*  - to prevent skipped scans with the higher scan rate, the compile mode is forced
+'*    to pipeline mode
+'*  - the TCs are measured in the main (fast) scan and the RTD (resistance temperature
+'*    device) or PRT (platinum resistance thermometer) are measured in the slow scan
+'*  - every Monday 10 o'clock, the station status is stored
+'*  - as the standard at SLF, the logger runs on wintertime (UTC+1)
+'*************************************************************************************
+
+PipelineMode               'run logger in pipeline mode, not in sequential mode
+
+'***   constants & configuration settings declared in a separate file   **************
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-system_settings.cr6   * author:   Ch. Buchli
+'* revision: v1.1.0                                           * date:     2021-02-22
+'*************************************************************************************
+'* main program:  TemperatureProfile_tower12-main.cr6
+'* description:   settings and calibration coefficients for the main program, to
+'*                distinguish several stations and adapt to the differing sensors
+'*                in addition, some general constants and type defs are created here
+'*************************************************************************************
+'* revision history:
+'*    v0.0.1    first draft (copy of CR1000-code) & WIP (work in progress)
+'*    v0.0.2    add structure types for IRGASON and CSAT3B
+'*    v0.0.3    change way to choose which PRT sensor is used, for coefficients
+'*              adapt range and excitation for PRT measurement
+'*    v0.0.4    remove duplicate unit assignement in structures
+'*    v0.0.5    change stations name according to loggers config, add SDM-port
+'*    v0.1.2    revert of small change due to tests in connection with compile errors
+'*    v0.2.0    constants for switching fan off periodically during night
+'*    v0.2.1    change end time of fan switch-on interval during night (0 -> 300)
+'*    v0.2.2    PRT bridge-excitation U8->U5 (later on has been decided to connect it
+'*              to U5), ventilator-tacho U6->U7 (as not possible at same pair)
+'*    v0.2.5    change voltage threshold for the ventilator (fan) from 11.5 to 12V
+'*************************************************************************************
+
+'***   constants & configuration settings   ******************************************
+StationName (TemperatureProfile_Tower12-Station)  'assign stations name to the logger
+'StationName (TemperatureProfile@SLF_1)            'different examples for the
+'StationName (TemperatureProfile_Tower3@Dischma)   '  name of the station
+'StationName (TempProfile@2'783'830/1'187'440)
+
+ConstTable
+  Const FastScanInterval = 50        'interval of main scan-loop in [ms], = 20Hz
+  Const SlowScanInterval = 5         'interval of slow sequence scan in [s]
+  Const ServiceDataInterval = 30     'interval for general service data [min]
+
+  Const ClockSync_ComPort = ComC3    'com-port used for the clock synchronisation
+  Const ClockSync_SlavePakBus = 103  'pakbus-address clock-receiver, tower 3-station
+  Const ClockSync_Interval = 4       'interval for synchronisation of the clock [h]
+
+  Const VOLT116_CPIaddr = 10         'CPI-address of the VOLT116-module
+  Const CSAT3B_lower_CPIaddr = 20    'CPI-address of lower CSAT3B sensor on pole
+  Const CSAT3B_upper_CPIaddr = 30    'CPI-address of upper CSAT3B sensor on pole
+  Const IRGASON_SDMport = U9         'SDM-port used for the IRGASONs
+  Const IRGASON_tower1_SDMaddr = 12  'SDM-address of IRGASON on tower 1
+  Const IRGASON_tower2_SDMaddr = 11  'SDM-address of IRGASON on tower 2
+  Const IRGASON_normalOutCMD = 1     'EC100-command for normal output - Ux,Uy,Uz,Ts,
+    'sonic diag,CO2,H2O,gas diag,ambient temp,ambient pressure,CO2 signal,H2O signal
+
+  Const NumberOfTC_tower1 = 0        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
+  Const NumberOfTC_tower2 = 10       'amount of thermocouples on tower 2
+
+  Const IRGASON_tower1_Pwr = C1      'power control of IRGASON on tower 1, NO
+  Const IRGASON_tower2_Pwr = C2      'power control of IRGASON on tower 2, NO
+  Const CSAT3B_lower_Pwr = SW12_1    'switched 12V for lower CSAT3B
+  Const CSAT3B_upper_Pwr = SW12_2    'switched 12V for upper CSAT3B
+
+  Const TC_Type = 1        'TypeE, FW-thermocouples are made of chromel-constantan
+  Const TC_1_tower1_DIFFch = 11       'differential channel of first TC of tower 1
+  Const TC_1_tower2_DIFFch = 1
+                           'differential channel of first thermocouple of tower 2
+'  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
+
+  Const PRT_DIFFch = U1    'first channel of 4 wire measurement
+  Const PRT_VXch = U5      'exicitation on U5 for PRT-measurement
+  Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
+  Const PRT_Vrange = mV200 '±200mV input range for BrHalf4W for R_PRT with less than
+                           '  200µA to prevent self heating of the PRT
+  Const PRT_Vex = 2050     '2050mV exitation voltage to correspond to input range
+
+  Const VentilatorPch = U7 'pulse channel for fan of radiation shield
+
+  Const FanCtrlPwr = U12             'power control of ventilator, NO
+  Const FanPwrBattThreshold = 12.0   'if battery drops below, switch ventilator off [V]
+  Const BattMin_Time = 15            'record batterys minimum over this time [min]
+  Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
+  Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
+  Const FanPwrOffMain = 1080         '  to 18:00 wintertime (UTC+1) [min], during day
+  Const FanPwrIntervalSec = 300      'interval for fan during night (5min) [s]
+  Const FanPwrOnSec = 270            'starting at 4min 30s [s]
+  Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
+  Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
+    '  reference temperature into datatable, same as for fan at night [s]
+
+  Const PRT_TS32038 = True           'choose which PRT-sensor is used
+  Const PRT_TS32110 = False          'coefficients are set by conditional compilation
+  
+  Const HygroVueSDIPort = C3         'HygroVue measurements are triggered using SDI12Recorder Command, using port C3
+  Const HygroVueSDIaddr = "0"        'default SDIaddr as only HygroVue is connected to C3
+  Const HygroVueSDICommand = "M3!"   'measures all available data (T, RH, dewpoint, vapor pressure)
+  Const HygroVueSDIMult = 1          'multiplication factor
+  Const HygroVueSDIOffs = 0          'offset
+  Const TRHData_WriteToTable = True
+  
+  ' set ports of Young Anemometer
+  Const YoungAnemVXPort = 4
+  Const YoungAnemWSPulseDIFF = 14
+  Const YoungAnemWDSigSE = 27
+
+EndConstTable
+
+  '***   calibration coefficients of PRTs (platinum resistance thermometer)   ***
+Const PRTcalibCoeff0 = -250.836943           'C0 for SN TS32038
+Const PRTcalibCoeff1 = 2.401971*10^-1        'C1
+Const PRTcalibCoeff2 = 1.058416*10^-5        'C2
+
+'***   general and multi-purpose constants   *****************************************
+Const KelvinToCelsius = -273.15      'for conversion from °K to °C, +273.15°
+Const FracToPercent = 100            'for conversion from a fraction (0-1) to percent
+Const KiloToHecto = 10               'for conversion from e.g. kPa to hPa
+Const toMilli = 1000                 'for conversion from e.g. m to mm
+Const toKiloB = 2^10                 ' = 1024, for conversion from B to kB
+ 
+Const T_Start = 0          'options for use of timer
+Const Reset_Start = 2
+Const Stop_Reset = 3
+Const Read_only = 4
+
+Const NC_ON = False        'for switches, normally open or normally closed
+Const NC_OFF = True
+Const NO_ON = True
+Const NO_OFF = False
+
+Const CSAT_ComBus = 1      'both CSAT3B are communcating over CPI
+Const CSAT_Mode = 0        'the measurements are triggered by the logger
+
+'***   structures for sensors data   *************************************************
+StructureType IRGASON_t    'this structure holds all output variables of a EC100
+  WindSpeed_Ux : Units WindSpeed_Ux = m/s      'wind speed towards sensor
+  WindSpeed_Uy : Units WindSpeed_Uy = m/s      'wind speed from left (sensors view)
+  WindSpeed_Uz : Units WindSpeed_Uz = m/s      'wind speed from below
+  TempAir_Sonic : Units TempAir_Sonic = °C     'virtual temperature of sonic sensor
+  DiagSonic As Long        'diagnostic flag of sonic sensor, 5 bits (manuals page 40)
+  CO2_dens : Units CO2_dens = mg/m³            'density of CO2
+  H2O_dens : Units H2O_dens = g/m³             'density of H2O
+  DiagIrgason As Long      'diagnostic flag of gas sensor, 22 bits (page 40 of manual)
+  TempAir_Irgason : Units TempAir_Irgason = °C 'air temperature, of auxiliary sensor
+  PressureAir_Irgason : Units PressureAir_Irgason = kPa  'air pressure
+  CO2_signal, H2O_signal   'signal strength of gas measurements, 0.0 ≤ 1.0
+  ReadOnly WindSpeed_Ux, WindSpeed_Uy, WindSpeed_Uz, TempAir_Sonic, DiagSonic,     CO2_dens, H2O_dens, DiagIrgason, TempAir_Irgason, PressureAir_Irgason,     CO2_signal, H2O_signal
+  IrgasonEnable As Boolean                     'enable or disable sensor
+EndStructureType
+
+StructureType CSAT3B_t     'this structure holds the wind output variables of a CSAT3B
+  WindSpeed_Ux             'wind speed towards sensor
+  WindSpeed_Uy             'wind speed from left (sensors view)
+  WindSpeed_Uz             'wind speed from below
+  TempAir_Sonic            'virtual temperature of sonic sensor
+    '  Units WindSpeed_Ux = m/s : Units WindSpeed_Uy = m/s : Units WindSpeed_Uz = m/s
+    '  Units TempAir_Sonic = °C      'as units are already defined in IRGASON_t
+  DiagSonic  As Long       'diagnostic word of sonic sensor, 8 bits (page 60 of manual)
+  ReadOnly WindSpeed_Ux, WindSpeed_Uy, WindSpeed_Uz, TempAir_Sonic, DiagSonic
+  CSAT3BEnable As Boolean            'enable or disable sensor
+EndStructureType
+
+StructureType CSAT3B_monitor_t       'holds some service information of a CSAT3B
+  ElectronicsTemp : Units ElectronicsTemp = °C      'temperature and relative humidity
+  ElectronicsRelHum : Units ElectronicsRelHum = %   '  inside the sensors housing
+  TiltPitch : Units TiltPitch = °              'values of sensors inclinometer
+  TiltRoll : Units TiltRoll = °
+EndStructureType
+
+'***   general constants and variables   *********************************************
+Const SensorsStartUpDelay = 30       'wait at program start for sensors be ready [s]
+
+Public IRGASON_tower1 As IRGASON_t, IRGASON_tower2 As IRGASON_t
+  'data from the IRGASON on tower 1 and from the IRGASON on tower 2
+Public CSAT3B_lower As CSAT3B_t, CSAT3B_upper As CSAT3B_t
+  'data from the lower and the upper CSAT3B on tower 2
+Public CSAT3B_lower_mon As CSAT3B_monitor_t, CSAT3B_upper_mon As CSAT3B_monitor_t
+  'monitor data from the two CSAT3B
+
+Public AirTempTC(NumberOfTC_tower1+NumberOfTC_tower2) : Units AirTempTC() = °C
+  'temperatures of all thermocouples, first ones of tower 1 and remaining of tower 2
+
+Public AirTempPRT : Units AirTempPRT = °C                'reference temperature
+Public PRT_resistance : Units PRT_resistance = Ω         'resistance of PRT
+Public VentilatorSpeed : Units VentilatorSpeed = Hz
+  'speed of fan (actually its frequency) from ventilated radiation shield
+
+' HygroVue Helix Shield Setup  
+Public TRHData(4)
+Alias TRHData(1)=AirTC
+Alias TRHData(2)=RH
+Alias TRHData(3)=Dewp
+Alias TRHData(4)=VP
+Units AirTC=Deg C
+Units RH=%
+Units Dewp=Deg C
+Units VP=kPa
+
+' Young anemometer variables
+Public WS_ms 'wind speed in m/s
+Public WindDir 'wind dir in degrees
+Units WS_ms = m/s
+Units WindDir = Degrees
+
+Public LoggerTemp : Units LoggerTemp = °c      'system variables
+Public BatteryVoltage : Units BatteryVoltage = V
+Public BatteryVoltage_min : Units BatteryVoltage_min = V
+Const BattMin_RunNr = BattMin_Time * 60 / SlowScanInterval
+                                               'number of values for running minimum
+Public Logger As String * 50                   'variables to capture status infos
+Public ProgramName As String * 50
+Public ProgStartTime As Long
+Public ProgramSignature, ProgramErrors, CalibErrors
+Public BackupBattery : Units BackupBattery = V
+Public CardsFreeMemory As Long : Units CardsFreeMemory = kB
+
+'***   data tables are defined in a separate file   **********************************
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-datatables.cr6        * author:   Ch. Buchli
+'* revision: v1.1.0                                           * date:     2021-02-22
+'*************************************************************************************
+'* main program:  TemperatureProfile_tower12-main.cr6
+'* description:   definition of all the data tables for the main program
+'*************************************************************************************
+'* revision history:
+'*    v0.0.1    first draft (copy of CR1000-code) & WIP (work in progress)
+'*    v0.0.3    complete datatables and some adaptions to them
+'*    v0.1.0    adapt some wrong variable names
+'*              resolve major problem that caused the compiler to crash, the use of
+'*              repetitions doesn't work for structure element, but only for arrays
+'*              further structure elements can't be used for WindVector and Average
+'*    v0.2.0    use tablename-constants to call the tables, add flag for slow table
+'*    v0.2.2    unified name of tables to shorter version
+'*    v0.2.3    adapt variable of status-table, change CardsFreeMemory-unit to kB
+'*    v0.2.4    average of all variables of CSAT3B_monitor-structures caused problem
+'*              to service table -> list them separately (instantaneous values)
+'*    v1.1.0    disable datatable Tower1_FastData with trigger-flag, commented all TCs
+'*              from Tower2_FastData and from Tower12_SlowData, add auxiliary
+'*              temperature from unventilated sensor of IRGASONs to FastData-tables,
+'*              add air pressure and temperature of IRGASON-tower2 to SlowData-table
+'*************************************************************************************
+
+'***   constants & variables for table and file handling  ****************************
+Const TableName_Tower1_FastData = "Tow1_FastData"
+Const FileName_Tower1_FastData = "CRD:" & TableName_Tower1_FastData & "_"
+Public LastWrittenFile_Tower1_FastData As String * 40
+ReadOnly LastWrittenFile_Tower1_FastData
+Const TableName_Tower2_FastData = "Tow2_FastData"
+Const FileName_Tower2_FastData = "CRD:" & TableName_Tower2_FastData & "_"
+Public LastWrittenFile_Tower2_FastData As String * 40
+ReadOnly LastWrittenFile_Tower2_FastData
+Const TableName_Tower12_SlowData = "Tow12_SlowData"
+Public SlowData_WriteToTable As Boolean : ReadOnly SlowData_WriteToTable
+Const FileName_Tower12_SlowData = "CRD:" & TableName_Tower12_SlowData & "_"
+Public LastWrittenFile_Tower12_SlowData As String * 40
+ReadOnly LastWrittenFile_Tower12_SlowData
+
+Const FileInterval_FastData = 6      '[h], create four files per day
+  'with a data rate of 20Hz, it produces 432'000 records per file
+Const FileInterval_SlowData = 24     '[h], create one file per day
+  'with 5s data period, it would produce 17'280 records per file, but during night not 
+Const FileTimeOnInt = 0              'new file at midnight, 6:00, noon & 18:00
+
+Const TableName_Service = "Tow12_ServiceData"
+Const FileName_Service = "CRD:" & TableName_Service & "_"
+Const FileInterval_Service = 7       '[day], every week create a new file
+Const FileTimeOnInt_Service = 0      'new file every Monday
+Const TableSize_Service = Ceiling (FileInterval_Service * 24 * 60 / ServiceDataInterval * 1.2)
+  'file interval [d] & data interval [min], + 20% reserve
+Const MaxFiles_Service = 52          'allocate memory for 52 weeks, one year
+Public LastWrittenFile_Tower12_Service As String * 40
+ReadOnly LastWrittenFile_Tower12_Service
+
+Const TableName_Status = "Tow12_StationStatus"
+Const FileName_Status = "CRD:" & TableName_Status & "_"
+Const MaxLines_Status = 100          'create a new file after 100 records
+Public LastWrittenFile_Tower12_Status As String * 40
+ReadOnly LastWrittenFile_Tower12_Status
+
+Const StatTableInterval = 168        'interval of status-table called [h], weekly
+Const StatTableTimeOnInt = 10        'time into interval [h], Monday 10 a.m.
+
+'***   data tables   *****************************************************************
+DataTable (TableName_Tower1_FastData,False,-1)  'this table contains all data from the
+    '  tower 1s sensors, meaning 5 thermocouples and one IRGASON
+    'for the Tschuggen-setup this is not used -> therefore trigger is False
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile (FileName_Tower1_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower1_FastData)
+  'Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
+  'FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+  Sample (1,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+  FieldNames ("Tower1_WindIRGASON_Ux:tower1 IRGASON Ux [m/s]")
+  Sample (1,IRGASON_tower1.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower1_WindIRGASON_Uy:tower1 IRGASON Uy [m/s]")
+  Sample (1,IRGASON_tower1.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower1_WindIRGASON_Uz:tower1 IRGASON Uz [m/s]")
+  Sample (1,IRGASON_tower1.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower1_TempAirSonicIRGASON:tower1 IRGASON TempAirSonic [°C]")
+  Sample (1,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+  FieldNames ("Tower1_CO2dens:tower1 IRGASON CO2 density [mg/m³]")
+  Sample (1,IRGASON_tower1.H2O_dens,IEEE4)
+  FieldNames ("Tower1_H2Odens:tower1 IRGASON H2O density [g/m³]")
+ ' Sample (4,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+ ' Sample (2,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+     'this syntax causes problems for the compiler, the use of repetitions seems to
+     '  work only for arrays but not for structure elements
+  Sample (1,IRGASON_tower1.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("Tower1_TempAirIRGASON:tower1 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower1.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("Tower1_PresAir:tower1 IRGASON air pressure [kPa]")
+  Sample (1,IRGASON_tower1.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
+  FieldNames ("Tower1_DiagSonic:tower1 IRGASON sonics diag")
+  Sample (1,IRGASON_tower1.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
+  FieldNames ("Tower1_DiagIrgason:tower1 IRGASON gas analyser diag")
+EndTable
+  
+DataTable (TableName_Tower2_FastData,True,-1)  'this table contains all data from the
+    '  tower 2s sensors, meaning 10 thermocouples, one IRGASON and 2 CSAT3B
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile (FileName_Tower2_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower2_FastData)
+  Sample (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4)
+    'values from all 10 thermocouples of tower 2 [°C]
+  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+  Sample (1,IRGASON_tower2.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+  FieldNames ("Tower2_WindIRGASON_Ux:tower2 IRGASON Ux [m/s]")
+  Sample (1,IRGASON_tower2.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindIRGASON_Uy:tower2 IRGASON Uy [m/s]")
+  Sample (1,IRGASON_tower2.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindIRGASON_Uz:tower2 IRGASON Uz [m/s]")
+  Sample (1,IRGASON_tower2.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirSonicIRGASON:tower2 IRGASON TempAirSonic [°C]")
+  Sample (1,IRGASON_tower2.CO2_dens,IEEE4)     'both gas density values of IRGASON
+  FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
+  Sample (1,IRGASON_tower2.H2O_dens,IEEE4)
+  FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
+ ' Sample (4,IRGASON_tower2.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+ ' Sample (2,IRGASON_tower2.CO2_dens,IEEE4)     'both gas density values of IRGASON
+     'this syntax causes problems for the compiler, the use of repetitions seems to
+     '  work only for arrays but not for structure elements
+  Sample (1,IRGASON_tower2.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("Tower2_TempAirIRGASON:tower2 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower2.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("Tower2_PresAir:tower2 IRGASON air pressure [kPa]")
+  Sample (1,IRGASON_tower2.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
+  FieldNames ("Tower2_DiagSonicIRGASON:tower2 IRGASON sonics diag")
+  Sample (1,IRGASON_tower2.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
+  FieldNames ("Tower2_DiagIrgason:tower2 IRGASON gas analyser diag")
+  Sample (1,CSAT3B_lower.WindSpeed_Ux,IEEE4)   'wind values of lower CSAT3B
+  FieldNames ("Tower2_WindCSATlower_Ux:tower2 lower CSAT3B Ux [m/s]")
+  Sample (1,CSAT3B_lower.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindCSATlower_Uy:tower2 lower CSAT3B Uy [m/s]")
+  Sample (1,CSAT3B_lower.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindCSATlower_Uz:tower2 lower CSAT3B Uz [m/s]")
+  Sample (1,CSAT3B_lower.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirCSATlower:tower2 lower CSAT3B TempAirSonic [°C]")
+ ' Sample (4,CSAT3B_lower.WindSpeed_Ux,IEEE4)   'wind values of lower CSAT3B
+  Sample (1,CSAT3B_lower.DiagSonic,UINT2)      'diagnostic flag of lower CSAT3B
+  FieldNames ("Tower2_DiagSonicCSATlower:tower2 lower CSAT3B diag")
+  Sample (1,CSAT3B_upper.WindSpeed_Ux,IEEE4)   'wind values of upper CSAT3B
+  FieldNames ("Tower2_WindCSATupper_Ux:tower2 upper CSAT3B Ux [m/s]")
+  Sample (1,CSAT3B_upper.WindSpeed_Uy,IEEE4)
+  FieldNames ("Tower2_WindCSATupper_Uy:tower2 upper CSAT3B Uy [m/s]")
+  Sample (1,CSAT3B_upper.WindSpeed_Uz,IEEE4)
+  FieldNames ("Tower2_WindCSATupper_Uz:tower2 upper CSAT3B Uz [m/s]")
+  Sample (1,CSAT3B_upper.TempAir_Sonic,IEEE4)
+  FieldNames ("Tower2_TempAirCSATupper:tower2 upper CSAT3B TempAirSonic [°C]")
+ ' Sample (4,CSAT3B_upper.WindSpeed_Ux,IEEE4)   'wind values of upper CSAT3B
+  Sample (1,CSAT3B_upper.DiagSonic,UINT2)      'diagnostic flag of upper CSAT3B
+  FieldNames ("Tower2_DiagSonicCSATupper:tower2 upper CSAT3B diag")
+  WindVector(1, WS_ms, WindDir, FP2, False, 0, 0, 0)
+  FieldNames("Windspeed_YoungAnem,WindDir_YoungAnem,WindDir_std_YoungAnem")
+EndTable
+
+DataTable (TableName_Tower12_SlowData,SlowData_WriteToTable,-1)
+    'this table contains the ventilated reference air temperature (PRT) and some other
+    '  more detailed and averaged data, its storing interval is during day the same as
+    '  the slow scan interval and during night at a certain interval, set by a query
+    '  in the slow scan although the table is called in the fast scan
+  DataInterval (0,SlowScanInterval,sec,0)      'samples of each slow scan
+  TableFile (FileName_Tower12_SlowData,64,-1,FileTimeOnInt,FileInterval_SlowData,hr,-1,LastWrittenFile_Tower12_SlowData)
+  Sample (1,AirTempPRT,IEEE4)                  'air temperature from ventilated PRT
+  FieldNames ("AirTempPRT_vent:temperature reference [°C]")
+  Sample (1,AirTC,IEEE4)
+  FieldNames ("AirTemp_HygroVue:temperature reference [°C],RH:relative humidity [%],Dewp:dewpoint [°C],VP:vapor pressure [kPa]")
+  Sample (1,IRGASON_tower2.TempAir_Irgason,IEEE4)
+    'air temperature of auxiliary unventilated sensor
+  FieldNames ("TempAirIRGASON:tower2 IRGASON TempAir [°C]")
+  Sample (1,IRGASON_tower2.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+  FieldNames ("PresAir:tower2 IRGASON air pressure [kPa]")
+  'WindVector (1,IRGASON_tower2.WindSpeed_Uy,IRGASON_tower2.WindSpeed_Ux,IEEE4,NOT(IRGASON_tower2.IrgasonEnable),20,1,2)
+  'FieldNames ("Tower2_WindSpeedScalMean_IRGASON:tower2 IRGASON mean scalar speed [m/s],Tower2_WindSpeedVectMean_IRGASON:tower2 IRGASON mean vector magnitude speed [m/s],Tower2_WindDirVectMean_IRGASON:tower2 IRGASON mean vector direction [°],Tower2_WindDirStdDev_IRGASON:tower2 IRGASON standard deviation direction [°]")
+    'mean scalar wind speed = Σscalars/N, mean vector magnitude speed = 
+    '  magnitude_Σvectors / N, mean vector direction = direction_Σvectors,
+    '  standard deviation direction = StdDev over all Θ
+  'Average (1,IRGASON_tower2.CO2_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  'FieldNames ("Tower2_CO2dens:tower2 IRGASON CO2 density [mg/m³]")
+  'Average (1,IRGASON_tower2.H2O_dens,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  'FieldNames ("Tower2_H2Odens:tower2 IRGASON H2O density [g/m³]")
+  'Average (1,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  'FieldNames ("Tower2_TempAir_IRGASON:tower2 IRGASON air temperature [°C]")
+  'Average (1,IRGASON_tower2.PressureAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  'FieldNames ("Tower2_PressureAir_IRGASON:tower2 IRGASON air pressure [kPa]")
+  'Average (2,IRGASON_tower2.TempAir_Irgason,IEEE4,NOT(IRGASON_tower2.IrgasonEnable))
+  'WindVector (1,CSAT3B_upper.WindSpeed_Uy,CSAT3B_upper.WindSpeed_Ux,IEEE4,NOT(CSAT3B_upper.CSAT3BEnable),20,1,2)
+  'FieldNames ("Tower2_WindSpeedScalMean_upperCSAT3B:tower2 upper CSAT3B mean scalar speed [m/s],Tower2_WindSpeedVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector magnitude speed [m/s],Tower2_WindDirVectMean_upperCSAT3B:tower2 upper CSAT3B mean vector direction [°],Tower2_WindDirStdDev_upperCSAT3B:tower2 upper CSAT3B standard deviation direction [°]")
+
+'  Average (NumberOfTC_tower1,AirTempTC(),IEEE4,False)
+'    'values from all 5 thermocouples of tower 1 [°C]
+'  FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+'  Average (NumberOfTC_tower2,AirTempTC(NumberOfTC_tower1+1),IEEE4,False)
+    'values from all 10 thermocouples of tower 2 [°C]
+'  FieldNames ("Tower2_AirTempTC1:tower2 AirTemp TC1 [°C],Tower2_AirTempTC2:tower2 AirTemp TC2 [°C],Tower2_AirTempTC3:tower2 AirTemp TC3 [°C],Tower2_AirTempTC4:tower2 AirTemp TC4 [°C],Tower2_AirTempTC5:tower2 AirTemp TC5 [°C],Tower2_AirTempTC6:tower2 AirTemp TC6 [°C],Tower2_AirTempTC7:tower2 AirTemp TC7 [°C],Tower2_AirTempTC8:tower2 AirTemp TC8 [°C],Tower2_AirTempTC9:tower2 AirTemp TC9 [°C],Tower2_AirTempTC10:tower2 AirTemp TC10 [°C]")
+EndTable
+
+DataTable (TableName_Service,True,TableSize_Service)
+    'this table contains the service data, such as supply voltage or recorded errors
+  DataInterval (0,ServiceDataInterval,min,0)
+  TableFile (FileName_Service,64,MaxFiles_Service,FileTimeOnInt_Service,FileInterval_Service,day,0,LastWrittenFile_Tower12_Service)
+  Sample (1,LoggerTemp,FP2)                    'loggers panel temperature
+  FieldNames ("LoggerTemperature:temperature of loggers panel [°C]")
+  Average (1,BatteryVoltage,FP2,False)         'stations power supply, average voltage
+  FieldNames ("BatteryVoltage_avg:loggers average supply voltage [V]")
+  Minimum (1,BatteryVoltage,FP2,False,False)   'minimal supply voltage (not MinRun)
+  FieldNames ("BatteryVoltage_min:loggers minimum supply voltage [V]")
+  Average (1,VentilatorSpeed,FP2,False)        'average frequency of ventilator
+  FieldNames ("VentilatorSpeed:fan-frequency of ventilated radiation shield [Hz]")
+  Average (1,CSAT3B_lower_mon,CSAT3B_monitor_t,NOT(CSAT3B_lower.CSAT3BEnable))
+  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+  Average (1,CSAT3B_upper_mon,CSAT3B_monitor_t,NOT(CSAT3B_upper.CSAT3BEnable))
+  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+  Sample (1,CSAT3B_lower_mon.ElectronicsTemp,FP2)        'service data of lower CSAT3B
+  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C]")
+  Sample (1,CSAT3B_lower_mon.ElectronicsRelHum,FP2)
+  FieldNames ("lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%]")
+  Sample (1,CSAT3B_lower_mon.TiltPitch,FP2)
+  FieldNames ("lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°]")
+  Sample (1,CSAT3B_lower_mon.TiltRoll,FP2)
+  FieldNames ("lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+  Sample (1,CSAT3B_upper_mon.ElectronicsTemp,FP2)        'service data of upper CSAT3B
+  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C]")
+  Sample (1,CSAT3B_upper_mon.ElectronicsRelHum,FP2)
+  FieldNames ("upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%]")
+  Sample (1,CSAT3B_upper_mon.TiltPitch,FP2)
+  FieldNames ("upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°]")
+  Sample (1,CSAT3B_upper_mon.TiltRoll,FP2)
+  FieldNames ("upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+EndTable
+
+DataTable (TableName_Status,True,MaxLines_Status)
+    'this table contains several status information about the station
+  'DataInterval (0,1,day,-1)         'called manually weekly
+  TableFile (FileName_Status,64,1,MaxLines_Status,0,day,0,LastWrittenFile_Tower12_Status)
+  Sample (1,Logger,String)
+  FieldNames ("LoggerName:one from settings")
+  Sample (1,ProgramName,String)
+  FieldNames ("ProgramName:filename of program")
+  Sample (1,ProgStartTime,NSEC)
+  FieldNames ("ProgStartTime:time of program-start")
+  Sample (1,ProgramSignature,UINT2)
+  FieldNames ("ProgramSignature:signature of program")
+  Sample (1,ProgramErrors,UINT2)
+  FieldNames ("ProgramErrors:errors during compile or runtime")
+  Sample (1,CalibErrors,UINT2)
+  FieldNames ("CalibErrors:calibration errors")
+  Sample (1,BackupBattery,FP2)
+  FieldNames ("LithiumBattery:voltage of backup battery [V]")
+  Sample (1,CardsFreeMemory,UINT4)
+  FieldNames ("CardsFreeMemory:free memory on card [kB]")
+  Sample (1,LastWrittenFile_Tower1_FastData,String)
+  FieldNames ("LastWrittenFile_Tower1_FastData:last fast-file of tower 1")
+  Sample (1,LastWrittenFile_Tower2_FastData,String)
+  FieldNames ("LastWrittenFile_Tower2_FastData:last fast-file of tower 2")
+  Sample (1,LastWrittenFile_Tower12_SlowData,String)
+  FieldNames ("LastWrittenFile_Tower2_SlowData:last slow-file of tower 2")
+EndTable
+
+'***   user functions & subroutines are defined in a separate file   *****************
+'*************************************************************************************
+'* Davos & Dischma / air temperature profile                                         *
+'*************************************************************************************
+'* program:  TemperatureProfile_tower12-usr_functions.cr6     * author:   Ch. Buchli
+'* revision: v1.1.0                                           * date:     2021-03-09
+'*************************************************************************************
+'* main program:  TemperatureProfile_tower12-main.cr6
+'* description:   user functions which are used in main program
+'*************************************************************************************
+'* revision history:
+'*    v0.0.2    extracted from main program
+'*    v0.0.3    adapt PortGet_UsrFct to CheckPort_UsrFct for the use with CR6
+'*    v0.2.3    change CardsFreeMemory-unit to kB
+'*************************************************************************************
+
+'***   functions & subroutines   *****************************************************
+Function GetStatus ()                'read some actual status data from Status-table
+  Logger = Status.StationName
+  ProgramName = Status.ProgName
+  ProgStartTime = Status.StartTime
+  ProgramSignature = Status.ProgSignature
+  ProgramErrors = Status.ProgErrors
+  CalibErrors = Status.ErrorCalib
+  BackupBattery = Status.LithiumBattery
+  If Status.CardStatus = "Card OK." Then       'test if a card is inserted
+    CardsFreeMemory = Status.CardBytesFree / toKiloB
+  EndIf          'read how much memory is left on SD-card [kB]
+EndFunction
+
+Function CheckPort_UsrFct (TestPort) As Boolean  'returns the state of a certain port
+  Select Case TestPort               '  as CheckPort doesn't work for SW12-ports, this
+    Case SW12_1                      '  function is a workaround to get their state
+      Return Status.SW12Volts(1)
+    Case SW12_2
+      Return Status.SW12Volts(2)
+    Case Else
+      Return False                   'return the determined state of the port
+  EndSelect
+EndFunction
+
+'---   initialize loggers interfaces   -----------------------------------------------
+SDMBeginPort (IRGASON_SDMport)       'configure SDM port on U9, U10 & U11
+
+'***   main program   ****************************************************************
+BeginProg
+  GetStatus()              'read station status and save the startup-values
+  CallTable TableName_Status
+
+'---   switch all instruments on   ---------------------------------------------------
+  PortSet (FanCtrlPwr,NO_ON,1)                 'switch fan of radiation shield on
+  'PortSet (IRGASON_tower1_Pwr,NO_ON,1)         'switch both IRGASONs on
+  PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+  SW12 (CSAT3B_lower_Pwr,NO_ON,1)              'switch both CSATs on
+  SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+  Delay (1,SensorsStartUpDelay,sec)            'wait for the instruments to be ready
+  'IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
+  IRGASON_tower2.IrgasonEnable = True
+  CSAT3B_lower.CSAT3BEnable = True             'enable both CSATs
+  CSAT3B_upper.CSAT3BEnable = True
+  
+'---   main scan loop   --------------------------------------------------------------
+  Scan (FastScanInterval,msec,3,0)
+    CDM_TCComp (VOLT116,VOLT116_CPIaddr,AirTempTC(),NumberOfTC_tower1+NumberOfTC_tower2,TC_1_tower2_DIFFch,TC_Type,0,0)
+      'measure all TCs one after the other, of tower 1 and tower 2, with differential
+      '  measurement and automatic compensation of the the cold-junction temperature
+      '  on the VOLT116
+   ' If CheckPort (IRGASON_tower1_Pwr) = True Then        'read only if it's on
+     'not possible to use EC100() conditionally
+    'EC100 (IRGASON_tower1,IRGASON_tower1_SDMaddr,IRGASON_normalOutCMD)
+      'read the data from IRGASON tower 1s EC100, over SDM-connection
+    EC100 (IRGASON_tower2,IRGASON_tower2_SDMaddr,IRGASON_normalOutCMD)
+      'read the data from IRGASON tower 2s EC100, over SDM-connection
+    If CheckPort_UsrFct (CSAT3B_lower_Pwr) = True Then   'read only if it's on
+      CSAT3B (CSAT3B_lower,CSAT_ComBus,CSAT3B_lower_CPIaddr,CSAT_Mode)
+        'read the data from the lower CSAT3B on tower 2, over CPI-connection
+    EndIf
+    If CheckPort_UsrFct (CSAT3B_upper_Pwr) = True Then   'read only if it's on
+      CSAT3B (CSAT3B_upper,CSAT_ComBus,CSAT3B_upper_CPIaddr,CSAT_Mode)
+        'read the data from the upper CSAT3B on tower 2, over CPI-connection
+    EndIf
+
+    PulseCount (VentilatorSpeed,1,VentilatorPch,3,1,1,0) 'measure fans speed
+      'tachometer output of 43502, frequency with high frequency-option
+      
+    PulseCount(WS_ms, 1, V116!SE28, 5, 1, 0.098, 0)
+      'measure windspeed of the Young anemometer
+    BrHalf(WindDir, 1, mV5000, V116!SE27, V116!Vx4, 1, 2500, True, 20000, 60, 355, 0)
+      'measure wind direction of the Young anemometer
+    If WindDir>=355 OR WindDir<0 Then WindDir=0
+      'Correct invalid young anemometer wind direction readings
+
+    'CallTable TableName_Tower1_FastData        'call data tables
+    CallTable TableName_Tower2_FastData
+    CallTable TableName_Tower12_SlowData       'to average some values
+  NextScan
+
+'---   slow scan loop   --------------------------------------------------------------
+  SlowSequence
+    Scan (SlowScanInterval,sec,0,0)
+      BrHalf4W (PRT_resistance,1,PRT_Vrange,PRT_Vrange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
+        'measure platinum resistance thermometer with 4 wire half bridge measurement
+      AirTempPRT = PRTcalibCoeff0 + PRT_resistance * PRTcalibCoeff1 + PRT_resistance^2 * PRTcalibCoeff2
+        'calculate the exact temperature with the calibration coefficients
+      SDI12Recorder (TRHData,HygroVueSDIPort,HygroVueSDIaddr,HygroVueSDICommand,HygroVueSDIMult,HygroVueSDIOffs)
+        'measure HygroVue
+        
+      Battery (BatteryVoltage)       'measure the voltage of the supply
+      MinRun (BatteryVoltage_min,1,BatteryVoltage,BattMin_RunNr)
+        'calculate the minimum of the batterys voltage, to decide if power devices on
+      PanelTemp (LoggerTemp,15000)   'measure panels temperature of logger
+      CSAT3BMonitor (CSAT3B_lower_mon,CSAT_ComBus,CSAT3B_lower_CPIaddr)
+      CSAT3BMonitor (CSAT3B_upper_mon,CSAT_ComBus,CSAT3B_upper_CPIaddr)
+      CallTable TableName_Service
+
+      If BatteryVoltage_min >= FanPwrBattThreshold AND TimeIsBetween (FanPwrOnMain,FanPwrOffMain,FanPwrIntervalMain,min) OR IfTime (TempRefDatatableNightInterval-SlowScanInterval,TempRefDatatableNightInterval,sec) Then
+          'during day and one scan before the interval of storing the data during
+          '  night, set flag to write into table (as the table itself is called in
+          '  the fast scan loop), additionally the table has the normal table
+          '  interval too, to prevent storing "fast data" during this five seconds
+          'if battery dropped to low and the fan is switched off (same criteria),
+          '  write with the slower interval to the table too
+        SlowData_WriteToTable = True
+      Else
+        SlowData_WriteToTable = False
+      EndIf
+
+      If BatteryVoltage_min >= FanPwrBattThreshold AND (TimeIsBetween (FanPwrOnMain,FanPwrOffMain,FanPwrIntervalMain,min) OR TimeIsBetween (FanPwrOnSec,FanPwrOffSec,FanPwrIntervalSec,sec)) Then
+          'switch fan on only if calculated minimum battery voltage didn't drop below
+          '  given threshold AND only during day OR at the give timeslot during night
+        PortSet (FanCtrlPwr,NO_ON,1)
+      Else
+        PortSet (FanCtrlPwr,NO_OFF,1)
+      EndIf
+
+      'If IRGASON_tower1.IrgasonEnable = True Then        'switch instruments off if
+      '  PortSet (IRGASON_tower1_Pwr,NO_ON,1)             '  they're disabled by user
+      'Else                                               '  flag (IRGASONs & CSATs)
+      '  PortSet(IRGASON_tower1_Pwr,NO_OFF,1)
+      'EndIf
+      If IRGASON_tower2.IrgasonEnable = True Then
+        PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+      Else
+        PortSet(IRGASON_tower2_Pwr,NO_OFF,1)
+      EndIf
+      If CSAT3B_lower.CSAT3BEnable = True Then
+        SW12 (CSAT3B_lower_Pwr,NO_ON,1)
+      Else
+        SW12 (CSAT3B_lower_Pwr,NO_OFF,1)
+      EndIf
+      If CSAT3B_upper.CSAT3BEnable = True Then
+        SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+      Else
+        SW12 (CSAT3B_upper_Pwr,NO_OFF,1)
+      EndIf
+
+      If IfTime (0,ClockSync_Interval,hr) Then 'synchronise clock with tower3-station
+        ClockReport (ClockSync_ComPort,0,ClockSync_SlavePakBus)
+      EndIf
+
+      If IfTime (StatTableTimeOnInt,StatTableInterval,Hr) Then
+        GetStatus()                  'record status every Monday at 10 o'clock
+        CallTable TableName_Status
+      EndIf   
+    NextScan
+  EndSequence
+EndProg

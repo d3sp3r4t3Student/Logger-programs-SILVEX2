@@ -236,7 +236,7 @@ StructureType CSAT3B_monitor_t       'holds some service information of a CSAT3B
 EndStructureType
 
 '***   general constants and variables   *********************************************
-Const SensorsStartUpDelay = 60       'wait at program start for sensors be ready [s]
+Const SensorsStartUpDelay = 120       'wait at program start for sensors to be ready, should be 120sec for IRGASON [s]
 
 'Public IRGASON_tower1 As IRGASON_t, 
 Public IRGASON_tower2 As IRGASON_t

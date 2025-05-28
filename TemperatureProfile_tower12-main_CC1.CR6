@@ -597,12 +597,12 @@ BeginProg
 
 '---   switch all instruments on   ---------------------------------------------------
   PortSet (FanCtrlPwr,NO_ON,1)                 'switch fan of radiation shield on
-  'PortSet (IRGASON_tower1_Pwr,NO_ON,1)         'switch both IRGASONs on
+  PortSet (IRGASON_tower1_Pwr,NO_ON,1)         'switch both IRGASONs on
   PortSet (IRGASON_tower2_Pwr,NO_ON,1)
   SW12 (CSAT3B_lower_Pwr,NO_ON,1)              'switch both CSATs on
   SW12 (CSAT3B_upper_Pwr,NO_ON,1)
   Delay (1,SensorsStartUpDelay,sec)            'wait for the instruments to be ready
-  'IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
+  IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
   IRGASON_tower2.IrgasonEnable = True
   CSAT3B_lower.CSAT3BEnable = True             'enable both CSATs
   CSAT3B_upper.CSAT3BEnable = True
@@ -619,14 +619,9 @@ BeginProg
       'read the data from IRGASON tower 1s EC100, over SDM-connection
     EC100 (IRGASON_tower2,IRGASON_tower2_SDMaddr,IRGASON_normalOutCMD)
       'read the data from IRGASON tower 2s EC100, over SDM-connection
-    If CheckPort_UsrFct (CSAT3B_lower_Pwr) = True Then   'read only if it's on
-      CSAT3B (CSAT3B_lower,CSAT_ComBus,CSAT3B_lower_CPIaddr,CSAT_Mode)
+    CSAT3B (CSAT3B_lower,CSAT_ComBus,CSAT3B_lower_CPIaddr,CSAT_Mode)
         'read the data from the lower CSAT3B on tower 2, over CPI-connection
-    EndIf
-    If CheckPort_UsrFct (CSAT3B_upper_Pwr) = True Then   'read only if it's on
-      CSAT3B (CSAT3B_upper,CSAT_ComBus,CSAT3B_upper_CPIaddr,CSAT_Mode)
-        'read the data from the upper CSAT3B on tower 2, over CPI-connection
-    EndIf
+    CSAT3B (CSAT3B_upper,CSAT_ComBus,CSAT3B_upper_CPIaddr,CSAT_Mode)
 
     PulseCount (VentilatorSpeed,1,VentilatorPch,3,1,1,0) 'measure fans speed
       'tachometer output of 43502, frequency with high frequency-option
@@ -685,21 +680,21 @@ BeginProg
       'Else                                               '  flag (IRGASONs & CSATs)
       '  PortSet(IRGASON_tower1_Pwr,NO_OFF,1)
       'EndIf
-      If IRGASON_tower2.IrgasonEnable = True Then
-        PortSet (IRGASON_tower2_Pwr,NO_ON,1)
-      Else
-        PortSet(IRGASON_tower2_Pwr,NO_OFF,1)
-      EndIf
-      If CSAT3B_lower.CSAT3BEnable = True Then
-        SW12 (CSAT3B_lower_Pwr,NO_ON,1)
-      Else
-        SW12 (CSAT3B_lower_Pwr,NO_OFF,1)
-      EndIf
-      If CSAT3B_upper.CSAT3BEnable = True Then
-        SW12 (CSAT3B_upper_Pwr,NO_ON,1)
-      Else
-        SW12 (CSAT3B_upper_Pwr,NO_OFF,1)
-      EndIf
+      'If IRGASON_tower2.IrgasonEnable = True Then
+      PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+      'Else
+      '  PortSet(IRGASON_tower2_Pwr,NO_OFF,1)
+      'EndIf
+      'If CSAT3B_lower.CSAT3BEnable = True Then
+      SW12 (CSAT3B_lower_Pwr,NO_ON,1)
+      'Else
+      '  SW12 (CSAT3B_lower_Pwr,NO_OFF,1)
+      'EndIf
+      'If CSAT3B_upper.CSAT3BEnable = True Then
+      SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+      'Else
+      '  SW12 (CSAT3B_upper_Pwr,NO_OFF,1)
+      'EndIf
 
       'If IfTime (0,ClockSync_Interval,hr) Then 'synchronise clock with tower3-station
       '  ClockReport (ClockSync_ComPort,0,ClockSync_SlavePakBus)

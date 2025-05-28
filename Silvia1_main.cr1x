@@ -372,7 +372,7 @@ BeginProg
       PanelTemp (LoggerTemp,250)     'to measure panels temp. again doesn't make sense
       
       'Tvent measurements
-      BrHalf4W (PRT_resistance,1,AutoRange,AutoRange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
+      BrHalf4W (PRT_resistance,1,PRT_Vrange,PRT_Vrange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
         'measure platinum resistance thermometer with 4 wire half bridge measurement
       AirTempPRT = PRTcalibCoeff0 + PRT_resistance * PRTcalibCoeff1 + PRT_resistance^2 * PRTcalibCoeff2
         'calculate the exact temperature with the calibration coefficients   

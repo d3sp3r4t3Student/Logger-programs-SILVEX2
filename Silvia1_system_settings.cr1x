@@ -59,6 +59,10 @@ ConstTable
   Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
   Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
     '  reference temperature into datatable, same as for fan at night [s]
+    
+  Const Pyr_SECh = 12                'SE12 for CMP3 Pyranometer
+  Const Pyr_Vrange = mV200           '±200mV input range for highest resolution on CR1000X
+  Const Pyr_Mult = 1/0.01441         'multiplicator = 1/(sensitivity in mV)
 
   Const PRT_TS32038 = False           'choose which PRT-sensor is used
   Const PRT_TS32110 = True          'coefficients are set by conditional compilation

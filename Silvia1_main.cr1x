@@ -104,6 +104,9 @@ Public PRT_resistance : Units PRT_resistance = Ω         'resistance of PRT
 'Units WS_ms = m/s
 'Units WindDir = Degrees
 
+'Pyranometer variable
+Public CMP3_Rad  ' Solar radiation in W/m²
+
 Public LoggerTemp : Units LoggerTemp = °C      'system variables
 Public BatteryVoltage : Units BatteryVoltage = V
 Public BatteryVoltage_min : Units BatteryVoltage_min = V
@@ -153,6 +156,12 @@ Const FileTimeOnInt_AirTemp = 0      'new file at midnight
 'Const FileInterval_YoungAnem = 24      '[h], every 24h create a new file
 'Const FileTimeOnInt_YoungAnem = 0      'new file at midnight
 
+Const TableName_Pyr = "Silvia1_Pyr"
+Const FileName_Pyr = "CRD:" & TableName_Pyr & "_"
+Public LastWrittenFile_Pyr As String * 40
+Const FileInterval_Pyr = 24      '[h], every 24h create a new file
+Const FileTimeOnInt_Pyr = 0      'new file at midnight
+
 Const TableName_Service = "Silvia1_ServiceData"
 Const FileName_Service = "CRD:" & TableName_Service & "_"
 Const FileInterval_Service = 1       '[day], every week create a new file
@@ -172,19 +181,49 @@ Const StatTableTimeOnInt = 0        'time into interval [h], midnight
 '***   data tables   *****************************************************************
 DataTable (TableName_sonics,True,-1) 
     'this table contains all data from the
-    '  CSAT3B and the CSAT3
-  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
-  TableFile(FileName_sonics,64,-1,FileTimeOnInt_sonics,FileInterval_sonics,hr,-1,LastWrittenFile_sonics)
-  Sample(5, CSAT3B_upper_Vals(1), IEEE4)
-  Sample(5, CSAT3B_lower_Vals(1), IEEE4)
-  Sample(5, CSAT3_Vals(1), IEEE4)
+    '  CSAT3Bs and the CSAT3
+  ' CSAT3B Upper
+  Sample(1, CSAT3B_upper_Vals(1), IEEE4)
+  FieldNames("CSAT3B_Upper_Ux:Upper CSAT3B Ux [m/s]")
+  Sample(1, CSAT3B_upper_Vals(2), IEEE4)
+  FieldNames("CSAT3B_Upper_Uy:Upper CSAT3B Uy [m/s]")
+  Sample(1, CSAT3B_upper_Vals(3), IEEE4)
+  FieldNames("CSAT3B_Upper_Uz:Upper CSAT3B Uz [m/s]")
+  Sample(1, CSAT3B_upper_Vals(4), IEEE4)
+  FieldNames("CSAT3B_Upper_Ts:Upper CSAT3B TempAirSonic [°C]")
+  Sample(1, CSAT3B_upper_Vals(5), IEEE4)
+  FieldNames("CSAT3B_Upper_Diagnostic:Upper CSAT3B diag")
+  
+  ' CSAT3B Lower
+  Sample(1, CSAT3B_lower_Vals(1), IEEE4)
+  FieldNames("CSAT3B_Lower_Ux:Lower CSAT3B Ux [m/s]")
+  Sample(1, CSAT3B_lower_Vals(2), IEEE4)
+  FieldNames("CSAT3B_Lower_Uy:Lower CSAT3B Uy [m/s]")
+  Sample(1, CSAT3B_lower_Vals(3), IEEE4)
+  FieldNames("CSAT3B_Lower_Uz:Lower CSAT3B Uz [m/s]")
+  Sample(1, CSAT3B_lower_Vals(4), IEEE4)
+  FieldNames("CSAT3B_Lower_Ts:Lower CSAT3B TempAirSonic [°C]")
+  Sample(1, CSAT3B_lower_Vals(5), IEEE4)
+  FieldNames("CSAT3B_Lower_Diagnostic:Lower CSAT3B diag")
+  
+  ' CSAT3
+  Sample(1, CSAT3_Vals(1), IEEE4)
+  FieldNames("CSAT3_Ux:CSAT3 Ux [m/s]")
+  Sample(1, CSAT3_Vals(2), IEEE4)
+  FieldNames("CSAT3_Uy:CSAT3 Uy [m/s]")
+  Sample(1, CSAT3_Vals(3), IEEE4)
+  FieldNames("CSAT3_Uz:CSAT3 Uz [m/s]")
+  Sample(1, CSAT3_Vals(4), IEEE4)
+  FieldNames("CSAT3_Ts:CSAT3 TempAirSonic [°C]")
+  Sample(1, CSAT3_Vals(5), IEEE4)
+  FieldNames("CSAT3_Diagnostic:CSAT3 diag")
 EndTable
 
 DataTable (TableName_TC,True,-1) 
     'this table contains all data from the TCs
   DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
   TableFile(FileName_TC,64,-1,FileTimeOnInt_TC,FileInterval_TC,hr,-1,LastWrittenFile_TC)
-  Sample (NumberOfTC,AirTempTC,IEEE4)
+  Sample (NumberOfTC,AirTempTC(1),IEEE4)
     'values from all 5 thermocouples [°C]
   FieldNames ("AirTempTC1:AirTemp TC1 [°C],AirTempTC2:tower2 AirTemp TC2 [°C],AirTempTC3:AirTemp TC3 [°C],AirTempTC4:AirTemp TC4 [°C],AirTempTC5:AirTemp TC5 [°C]")
 EndTable
@@ -208,6 +247,13 @@ EndTable
 '  FieldNames("Windspeed_YoungAnem:wind speed [m/s],WindDir_YoungAnem:wind direction [deg],WindDir_std_YoungAnem:standard deviation of wind direction [deg]")
 'EndTable
 
+DataTable (TableName_Pyr,1,-1)
+  DataInterval (0,SlowScanInterval,sec,0)      'samples from each slow scan
+  TableFile (FileName_Pyr,64,-1,FileTimeOnInt_Pyr,FileInterval_Pyr,hr,-1,LastWrittenFile_Pyr)
+  Sample (1,CMP3_Rad,IEEE4)                   'air temperature from Tvent
+  FieldNames ("CMP3 Pyranometer:Incoming short wave radiation [W/m^2]")
+EndTable
+
 DataTable (TableName_Service,True,TableSize_Service)
     'this table contains the service data, such as supply voltage or recorded errors
   DataInterval (0,ServiceDataInterval,min,0)
@@ -224,12 +270,14 @@ DataTable (TableName_CSAT3B_upper_Monitor,True,-1)
   DataInterval (0,SlowScanInterval,sec,10)
   TableFile (FileName_CSAT3B_upper_Monitor,64,-1,FileTimeOnInt_CSAT3B_upper_Monitor,FileInterval_CSAT3B_upper_Monitor,hr,0,LastWrittenFile_CSAT3B_upper_Monitor)
   Sample (4,CSAT3B_upper_MonitorVals(1),IEEE4)
+  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
 EndTable
 
 DataTable (TableName_CSAT3B_lower_Monitor,True,-1)
   DataInterval (0,SlowScanInterval,sec,10)
   TableFile (FileName_CSAT3B_lower_Monitor,64,-1,FileTimeOnInt_CSAT3B_lower_Monitor,FileInterval_CSAT3B_lower_Monitor,hr,0,LastWrittenFile_CSAT3B_lower_Monitor)
   Sample (4,CSAT3B_lower_MonitorVals(1),IEEE4)
+  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
 EndTable
 
 DataTable (TableName_Status,True,MaxLines_Status)
@@ -292,6 +340,13 @@ BeginProg
   Scan (FastScanInterval,msec,3,0)
     SW12 (SW12_1, 1, 0)                           'switch power supply of CSAT3Bs on (must be in scan loop)
     SW12 (SW12_2, 1, 0)
+    
+    TCDiff(AirTempTC(),NumberOfTC,mV1000,TC_DIFFch,TC_Type,AirTempPRT,True,0,15000,1,0)
+    'measure all TCs one after the other, of tower 1 and tower 2, with differential
+    '  measurement and automatic compensation of the the cold-junction temperature
+      
+    CallTable TableName_TC
+
     ' do EC stuff
     CSAT3B(CSAT3B_upper_Vals(), 1, CSAT3B_upper_CPIaddr, CSAT3B_Mode)
       'read the data from CSAT3B; 1 for CPI-communication
@@ -301,14 +356,8 @@ BeginProg
       'read the data from CSAT3; 0 for SDM-communication
       
     CallTable TableName_sonics
-
-    TCSe(AirTempTC(),NumberOfTC,mV1000,TC_DIFFch,TC_Type,AirTempPRT,False,0,15000,1,0)
-      'measure all TCs one after the other, of tower 1 and tower 2, with differential
-      '  measurement and automatic compensation of the the cold-junction temperature
-      
-    CallTable TableName_TC
     
-    'Young Anemometer wind speed measurement triggered every 5sec to reduce scan load
+    'Young Anemometer wind speed measurement !!!disabled to reduce scan load, otherwise SlowSequence is never called!!!
     'PulseCount(WS_ms, 1, YoungAnemWSPulseDIFF, 5, 1, 0.098, 0)
       
   NextScan
@@ -322,17 +371,13 @@ BeginProg
         'calculate the minimum of the batterys voltage, to decide if power devices on
       PanelTemp (LoggerTemp,250)     'to measure panels temp. again doesn't make sense
       
-      CallTable TableName_Service
-      
       'Tvent measurements
-      BrHalf4W (PRT_resistance,1,PRT_Vrange,PRT_Vrange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
+      BrHalf4W (PRT_resistance,1,AutoRange,AutoRange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
         'measure platinum resistance thermometer with 4 wire half bridge measurement
       AirTempPRT = PRTcalibCoeff0 + PRT_resistance * PRTcalibCoeff1 + PRT_resistance^2 * PRTcalibCoeff2
         'calculate the exact temperature with the calibration coefficients   
 
-      CallTable TableName_PRTData
-      
-'      'Young Anemometer wind direction measurement
+'      'Young Anemometer wind direction measurement !!!disabled because of a too high scan load!!!
 '      BrHalf(WindDir, 1, AutoRange, YoungAnemWDSigSE, YoungAnemVXPort, 1, 2500, True,20000, 60, 355, 0)
 '        'measure wind direction of the Young anemometer
 '      If WindDir>=355 OR WindDir<0 Then WindDir=0
@@ -341,10 +386,14 @@ BeginProg
 '      CallTable TableName_YoungAnem
       
       'need to include Pyranometer here
+      VoltSe(CMP3_Rad,1,Pyr_Vrange,Pyr_SECh,True,0,15000,100,0) 
 
       CSAT3BMonitor(CSAT3B_upper_MonitorVals(), 1, CSAT3B_upper_CPIaddr)
       CSAT3BMonitor(CSAT3B_lower_MonitorVals(), 1, CSAT3B_lower_CPIaddr)      
-
+      
+      CallTable TableName_PRTData
+      CallTable TableName_Pyr
+      CallTable TableName_Service
       CallTable(TableName_CSAT3B_upper_Monitor)
       CallTable(TableName_CSAT3B_lower_Monitor)
 

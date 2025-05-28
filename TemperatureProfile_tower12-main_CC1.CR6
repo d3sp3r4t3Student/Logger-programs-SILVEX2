@@ -193,7 +193,7 @@ Const Read_only = 4
 
 Const NC_ON = False        'for switches, normally open or normally closed
 Const NC_OFF = True
-Const NO_ON = True
+Const NO_ON = 1
 Const NO_OFF = False
 
 Const CSAT_ComBus = 1      'both CSAT3B are communcating over CPI
@@ -212,7 +212,7 @@ StructureType IRGASON_t    'this structure holds all output variables of a EC100
   TempAir_Irgason : Units TempAir_Irgason = °C 'air temperature, of auxiliary sensor
   PressureAir_Irgason : Units PressureAir_Irgason = kPa  'air pressure
   CO2_signal, H2O_signal   'signal strength of gas measurements, 0.0 ≤ 1.0
-  ReadOnly WindSpeed_Ux, WindSpeed_Uy, WindSpeed_Uz, TempAir_Sonic, DiagSonic,     CO2_dens, H2O_dens, DiagIrgason, TempAir_Irgason, PressureAir_Irgason,     CO2_signal, H2O_signal
+  ReadOnly WindSpeed_Ux, WindSpeed_Uy, WindSpeed_Uz, TempAir_Sonic, DiagSonic, CO2_dens, H2O_dens, DiagIrgason, TempAir_Irgason, PressureAir_Irgason, CO2_signal, H2O_signal
   IrgasonEnable As Boolean                     'enable or disable sensor
 EndStructureType
 
@@ -236,9 +236,10 @@ StructureType CSAT3B_monitor_t       'holds some service information of a CSAT3B
 EndStructureType
 
 '***   general constants and variables   *********************************************
-Const SensorsStartUpDelay = 30       'wait at program start for sensors be ready [s]
+Const SensorsStartUpDelay = 60       'wait at program start for sensors be ready [s]
 
-Public IRGASON_tower1 As IRGASON_t, IRGASON_tower2 As IRGASON_t
+'Public IRGASON_tower1 As IRGASON_t, 
+Public IRGASON_tower2 As IRGASON_t
   'data from the IRGASON on tower 1 and from the IRGASON on tower 2
 Public CSAT3B_lower As CSAT3B_t, CSAT3B_upper As CSAT3B_t
   'data from the lower and the upper CSAT3B on tower 2
@@ -311,14 +312,16 @@ Public CardsFreeMemory As Long : Units CardsFreeMemory = kB
 '*************************************************************************************
 
 '***   constants & variables for table and file handling  ****************************
-Const TableName_Tower1_FastData = "Tow1_FastData"
-Const FileName_Tower1_FastData = "CRD:" & TableName_Tower1_FastData & "_"
-Public LastWrittenFile_Tower1_FastData As String * 40
-ReadOnly LastWrittenFile_Tower1_FastData
+'Const TableName_Tower1_FastData = "Tow1_FastData"
+'Const FileName_Tower1_FastData = "CRD:" & TableName_Tower1_FastData & "_"
+'Public LastWrittenFile_Tower1_FastData As String * 40
+'ReadOnly LastWrittenFile_Tower1_FastData
+
 Const TableName_Tower2_FastData = "Tow2_FastData"
 Const FileName_Tower2_FastData = "CRD:" & TableName_Tower2_FastData & "_"
 Public LastWrittenFile_Tower2_FastData As String * 40
 ReadOnly LastWrittenFile_Tower2_FastData
+
 Const TableName_Tower12_SlowData = "Tow12_SlowData"
 Public SlowData_WriteToTable As Boolean : ReadOnly SlowData_WriteToTable
 Const FileName_Tower12_SlowData = "CRD:" & TableName_Tower12_SlowData & "_"
@@ -348,42 +351,42 @@ Public LastWrittenFile_Tower12_Status As String * 40
 ReadOnly LastWrittenFile_Tower12_Status
 
 Const StatTableInterval = 168        'interval of status-table called [h], weekly
-Const StatTableTimeOnInt = 10        'time into interval [h], Monday 10 a.m.
+Const StatTableTimeOnInt = 0        'time into interval [h], Monday 0 a.m.
 
 '***   data tables   *****************************************************************
-DataTable (TableName_Tower1_FastData,False,-1)  'this table contains all data from the
-    '  tower 1s sensors, meaning 5 thermocouples and one IRGASON
-    'for the Tschuggen-setup this is not used -> therefore trigger is False
-  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
-  TableFile (FileName_Tower1_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower1_FastData)
-  'Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
-  'FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
-  Sample (1,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
-  FieldNames ("Tower1_WindIRGASON_Ux:tower1 IRGASON Ux [m/s]")
-  Sample (1,IRGASON_tower1.WindSpeed_Uy,IEEE4)
-  FieldNames ("Tower1_WindIRGASON_Uy:tower1 IRGASON Uy [m/s]")
-  Sample (1,IRGASON_tower1.WindSpeed_Uz,IEEE4)
-  FieldNames ("Tower1_WindIRGASON_Uz:tower1 IRGASON Uz [m/s]")
-  Sample (1,IRGASON_tower1.TempAir_Sonic,IEEE4)
-  FieldNames ("Tower1_TempAirSonicIRGASON:tower1 IRGASON TempAirSonic [°C]")
-  Sample (1,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
-  FieldNames ("Tower1_CO2dens:tower1 IRGASON CO2 density [mg/m³]")
-  Sample (1,IRGASON_tower1.H2O_dens,IEEE4)
-  FieldNames ("Tower1_H2Odens:tower1 IRGASON H2O density [g/m³]")
- ' Sample (4,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
- ' Sample (2,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
-     'this syntax causes problems for the compiler, the use of repetitions seems to
-     '  work only for arrays but not for structure elements
-  Sample (1,IRGASON_tower1.TempAir_Irgason,IEEE4)
-    'air temperature of auxiliary unventilated sensor
-  FieldNames ("Tower1_TempAirIRGASON:tower1 IRGASON TempAir [°C]")
-  Sample (1,IRGASON_tower1.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
-  FieldNames ("Tower1_PresAir:tower1 IRGASON air pressure [kPa]")
-  Sample (1,IRGASON_tower1.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
-  FieldNames ("Tower1_DiagSonic:tower1 IRGASON sonics diag")
-  Sample (1,IRGASON_tower1.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
-  FieldNames ("Tower1_DiagIrgason:tower1 IRGASON gas analyser diag")
-EndTable
+'DataTable (TableName_Tower1_FastData,False,-1)  'this table contains all data from the
+'    '  tower 1s sensors, meaning 5 thermocouples and one IRGASON
+'    '  for the Tschuggen-setup this is not used -> therefore trigger is False
+'  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+'  TableFile (FileName_Tower1_FastData,64,-1,FileTimeOnInt,FileInterval_FastData,hr,0,LastWrittenFile_Tower1_FastData)
+'  'Sample (NumberOfTC_tower1,AirTempTC(),IEEE4) 'values from all TCs of tower 1 [°C]
+'  'FieldNames ("Tower1_AirTempTC1:tower1 AirTemp TC1 [°C],Tower1_AirTempTC2:tower1 AirTemp TC2 [°C],Tower1_AirTempTC3:tower1 AirTemp TC3 [°C],Tower1_AirTempTC4:tower1 AirTemp TC4 [°C],Tower1_AirTempTC5:tower1 AirTemp TC5 [°C]")
+'  Sample (1,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+'  FieldNames ("Tower1_WindIRGASON_Ux:tower1 IRGASON Ux [m/s]")
+'  Sample (1,IRGASON_tower1.WindSpeed_Uy,IEEE4)
+'  FieldNames ("Tower1_WindIRGASON_Uy:tower1 IRGASON Uy [m/s]")
+'  Sample (1,IRGASON_tower1.WindSpeed_Uz,IEEE4)
+'  FieldNames ("Tower1_WindIRGASON_Uz:tower1 IRGASON Uz [m/s]")
+'  Sample (1,IRGASON_tower1.TempAir_Sonic,IEEE4)
+'  FieldNames ("Tower1_TempAirSonicIRGASON:tower1 IRGASON TempAirSonic [°C]")
+'  Sample (1,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+'  FieldNames ("Tower1_CO2dens:tower1 IRGASON CO2 density [mg/m³]")
+'  Sample (1,IRGASON_tower1.H2O_dens,IEEE4)
+'  FieldNames ("Tower1_H2Odens:tower1 IRGASON H2O density [g/m³]")
+' ' Sample (4,IRGASON_tower1.WindSpeed_Ux,IEEE4) 'first four variables of IRGASONs data
+' ' Sample (2,IRGASON_tower1.CO2_dens,IEEE4)     'both gas density values of IRGASON
+'     'this syntax causes problems for the compiler, the use of repetitions seems to
+'     '  work only for arrays but not for structure elements
+'  Sample (1,IRGASON_tower1.TempAir_Irgason,IEEE4)
+'    'air temperature of auxiliary unventilated sensor
+'  FieldNames ("Tower1_TempAirIRGASON:tower1 IRGASON TempAir [°C]")
+'  Sample (1,IRGASON_tower1.PressureAir_Irgason,IEEE4)    'air pressure of IRGASON
+'  FieldNames ("Tower1_PresAir:tower1 IRGASON air pressure [kPa]")
+'  Sample (1,IRGASON_tower1.DiagSonic,UINT2)    'diagnostic flag of IRGASONs sonic
+'  FieldNames ("Tower1_DiagSonic:tower1 IRGASON sonics diag")
+'  Sample (1,IRGASON_tower1.DiagIrgason,UINT4)  'diagnostic of IRGASONs gas analyser
+'  FieldNames ("Tower1_DiagIrgason:tower1 IRGASON gas analyser diag")
+'EndTable
   
 DataTable (TableName_Tower2_FastData,True,-1)  'this table contains all data from the
     '  tower 2s sensors, meaning 10 thermocouples, one IRGASON and 2 CSAT3B
@@ -538,8 +541,8 @@ DataTable (TableName_Status,True,MaxLines_Status)
   FieldNames ("LithiumBattery:voltage of backup battery [V]")
   Sample (1,CardsFreeMemory,UINT4)
   FieldNames ("CardsFreeMemory:free memory on card [kB]")
-  Sample (1,LastWrittenFile_Tower1_FastData,String)
-  FieldNames ("LastWrittenFile_Tower1_FastData:last fast-file of tower 1")
+'  Sample (1,LastWrittenFile_Tower1_FastData,String)
+'  FieldNames ("LastWrittenFile_Tower1_FastData:last fast-file of tower 1")
   Sample (1,LastWrittenFile_Tower2_FastData,String)
   FieldNames ("LastWrittenFile_Tower2_FastData:last fast-file of tower 2")
   Sample (1,LastWrittenFile_Tower12_SlowData,String)
@@ -576,16 +579,16 @@ Function GetStatus ()                'read some actual status data from Status-t
   EndIf          'read how much memory is left on SD-card [kB]
 EndFunction
 
-Function CheckPort_UsrFct (TestPort) As Boolean  'returns the state of a certain port
-  Select Case TestPort               '  as CheckPort doesn't work for SW12-ports, this
-    Case SW12_1                      '  function is a workaround to get their state
-      Return Status.SW12Volts(1)
-    Case SW12_2
-      Return Status.SW12Volts(2)
-    Case Else
-      Return False                   'return the determined state of the port
-  EndSelect
-EndFunction
+'Function CheckPort_UsrFct (TestPort) As Boolean  'returns the state of a certain port
+'  Select Case TestPort               '  as CheckPort doesn't work for SW12-ports, this
+'    Case SW12_1                      '  function is a workaround to get their state
+'      Return Status.SW12Volts(1)
+'    Case SW12_2
+'      Return Status.SW12Volts(2)
+'    Case Else
+'      Return False                   'return the determined state of the port
+'  EndSelect
+'EndFunction
 
 '---   initialize loggers interfaces   -----------------------------------------------
 SDMBeginPort (IRGASON_SDMport)       'configure SDM port on U9, U10 & U11
@@ -602,7 +605,7 @@ BeginProg
   SW12 (CSAT3B_lower_Pwr,NO_ON,1)              'switch both CSATs on
   SW12 (CSAT3B_upper_Pwr,NO_ON,1)
   Delay (1,SensorsStartUpDelay,sec)            'wait for the instruments to be ready
-  IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
+  'IRGASON_tower1.IrgasonEnable = True          'enable both IRGASONs
   IRGASON_tower2.IrgasonEnable = True
   CSAT3B_lower.CSAT3BEnable = True             'enable both CSATs
   CSAT3B_upper.CSAT3BEnable = True
@@ -681,17 +684,17 @@ BeginProg
       '  PortSet(IRGASON_tower1_Pwr,NO_OFF,1)
       'EndIf
       'If IRGASON_tower2.IrgasonEnable = True Then
-      PortSet (IRGASON_tower2_Pwr,NO_ON,1)
+      '  PortSet (IRGASON_tower2_Pwr,NO_ON,1)
       'Else
       '  PortSet(IRGASON_tower2_Pwr,NO_OFF,1)
       'EndIf
       'If CSAT3B_lower.CSAT3BEnable = True Then
-      SW12 (CSAT3B_lower_Pwr,NO_ON,1)
+      '  SW12 (CSAT3B_lower_Pwr,NO_ON,1)
       'Else
       '  SW12 (CSAT3B_lower_Pwr,NO_OFF,1)
       'EndIf
       'If CSAT3B_upper.CSAT3BEnable = True Then
-      SW12 (CSAT3B_upper_Pwr,NO_ON,1)
+      '  SW12 (CSAT3B_upper_Pwr,NO_ON,1)
       'Else
       '  SW12 (CSAT3B_upper_Pwr,NO_OFF,1)
       'EndIf
@@ -701,7 +704,7 @@ BeginProg
       'EndIf
 
       If IfTime (StatTableTimeOnInt,StatTableInterval,Hr) Then
-        GetStatus()                  'record status every Monday at 10 o'clock
+        GetStatus()                  'record status every Monday at 0 o'clock
         CallTable TableName_Status
       EndIf   
     NextScan

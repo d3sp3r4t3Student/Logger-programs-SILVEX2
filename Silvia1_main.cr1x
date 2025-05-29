@@ -31,7 +31,7 @@ PipelineMode             'run logger in pipeline mode, not in sequential mode
 Include "CPU:Silvia1_system_settings.cr1x"   'include separate file
 
 '***   general variables   ***********************************************************
-Const SensorsStartUpDelay = 30 'wait at program start for sensors to be ready [s]
+Const SensorsStartUpDelay = 120 'wait at program start for sensors to be ready [s]
 
 ' Upper CSAT3B
 Public CSAT3B_upper_Vals(5)

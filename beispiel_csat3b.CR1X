@@ -1,0 +1,46 @@
+'---------------------------------------------
+' Define Constants, Variables, and Aliases
+'---------------------------------------------
+Const CPI_ADDR = 50 'CPI Address of Device
+Public CSATVals(5)
+Public CSATMonitorVals(4)
+Alias CSATVals(1) = Ux
+Alias CSATVals(2) = Uy
+Alias CSATVals(3) = Uz
+Alias CSATVals(4) = SonTemp
+Alias CSATVals(5) = Diag
+Alias CSATMonitorVals(1) = BoardTemp
+Alias CSATMonitorVals(2) = BoardHumidity
+Alias CSATMonitorVals(3) = InclinePitch
+Alias CSATMonitorVals(4) = InclineRoll
+'---------------------------------------------
+' Define Data Tables
+'---------------------------------------------
+DataTable (SonicData,1,-1)
+  Sample (5,CSATVals(1),IEEE4)
+EndTable
+'DataTable (MonitorData,1,-1)
+'  DataInterval (0,5,Sec,10)
+'  Sample (4,CSATMonitorVals(1),IEEE4)
+'EndTable
+'---------------------------------------------
+' Main Program
+'---------------------------------------------
+PipelineMode
+
+BeginProg
+  SW12(SW12_1,1,1)
+  SW12(SW12_2,1,1)
+  Delay(1,60,sec)
+  Scan(50,msec,500,0) '20 Hz Scan
+    'CSAT3B(Destination, Bus, Address, OperatingMode)
+    CSAT3B(CSATVals(),1,CPI_ADDR,0)
+    CallTable(SonicData)
+  NextScan
+'  SlowSequence
+'  Scan(5,sec,0,0) '5 second scan
+    'CSAT3BMonitor(Destination, Bus, Address)
+'    CSAT3BMonitor(CSATMonitorVals(),1,CPI_ADDR)
+'    CallTable(MonitorData)
+'  NextScan
+EndProg

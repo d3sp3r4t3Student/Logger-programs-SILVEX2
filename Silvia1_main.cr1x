@@ -35,47 +35,47 @@ Const SensorsStartUpDelay = 60 'wait at program start for sensors to be ready [s
 
 ' Upper CSAT3B
 Public CSAT3B_upper_Vals(5)
-Public CSAT3B_upper_MonitorVals(4)
+'Public CSAT3B_upper_MonitorVals(4)
 Alias CSAT3B_upper_Vals(1) = Ux_upper_CSAT3B
 Alias CSAT3B_upper_Vals(2) = Uy_upper_CSAT3B
 Alias CSAT3B_upper_Vals(3) = Uz_upper_CSAT3B
 Alias CSAT3B_upper_Vals(4) = Ts_upper_CSAT3B
 Alias CSAT3B_upper_Vals(5) = Diag_upper_CSAT3B
-Alias CSAT3B_upper_MonitorVals(1) = BoardTemp_upper_CSAT3B
-Alias CSAT3B_upper_MonitorVals(2) = BoardHumidity_upper_CSAT3B
-Alias CSAT3B_upper_MonitorVals(3) = InclinePitch_upper_CSAT3B
-Alias CSAT3B_upper_MonitorVals(4) = InclineRoll_upper_CSAT3B
+'Alias CSAT3B_upper_MonitorVals(1) = BoardTemp_upper_CSAT3B
+'Alias CSAT3B_upper_MonitorVals(2) = BoardHumidity_upper_CSAT3B
+'Alias CSAT3B_upper_MonitorVals(3) = InclinePitch_upper_CSAT3B
+'Alias CSAT3B_upper_MonitorVals(4) = InclineRoll_upper_CSAT3B
 Units Ux_upper_CSAT3B = m/s
 Units Uy_upper_CSAT3B = m/s
 Units Uz_upper_CSAT3B = m/s
 Units Ts_upper_CSAT3B = C
 Units Diag_upper_CSAT3B = arb
-Units BoardTemp_upper_CSAT3B = C
-Units BoardHumidity_upper_CSAT3B = percent
-Units InclinePitch_upper_CSAT3B = deg
-Units InclineRoll_upper_CSAT3B = deg
+'Units BoardTemp_upper_CSAT3B = C
+'Units BoardHumidity_upper_CSAT3B = percent
+'Units InclinePitch_upper_CSAT3B = deg
+'Units InclineRoll_upper_CSAT3B = deg
 
 ' Lower CSAT3B
 Public CSAT3B_lower_Vals(5)
-Public CSAT3B_lower_MonitorVals(4)
+'Public CSAT3B_lower_MonitorVals(4)
 Alias CSAT3B_lower_Vals(1) = Ux_lower_CSAT3B
 Alias CSAT3B_lower_Vals(2) = Uy_lower_CSAT3B
 Alias CSAT3B_lower_Vals(3) = Uz_lower_CSAT3B
 Alias CSAT3B_lower_Vals(4) = Ts_lower_CSAT3B
 Alias CSAT3B_lower_Vals(5) = Diag_lower_CSAT3B
-Alias CSAT3B_lower_MonitorVals(1) = BoardTemp_lower_CSAT3B
-Alias CSAT3B_lower_MonitorVals(2) = BoardHumidity_lower_CSAT3B
-Alias CSAT3B_lower_MonitorVals(3) = InclinePitch_lower_CSAT3B
-Alias CSAT3B_lower_MonitorVals(4) = InclineRoll_lower_CSAT3B
+'Alias CSAT3B_lower_MonitorVals(1) = BoardTemp_lower_CSAT3B
+'Alias CSAT3B_lower_MonitorVals(2) = BoardHumidity_lower_CSAT3B
+'Alias CSAT3B_lower_MonitorVals(3) = InclinePitch_lower_CSAT3B
+'Alias CSAT3B_lower_MonitorVals(4) = InclineRoll_lower_CSAT3B
 Units Ux_lower_CSAT3B = m/s
 Units Uy_lower_CSAT3B = m/s
 Units Uz_lower_CSAT3B = m/s
 Units Ts_lower_CSAT3B = C
 Units Diag_lower_CSAT3B = arb
-Units BoardTemp_lower_CSAT3B = C
-Units BoardHumidity_lower_CSAT3B = percent
-Units InclinePitch_lower_CSAT3B = deg
-Units InclineRoll_lower_CSAT3B = deg
+'Units BoardTemp_lower_CSAT3B = C
+'Units BoardHumidity_lower_CSAT3B = percent
+'Units InclinePitch_lower_CSAT3B = deg
+'Units InclineRoll_lower_CSAT3B = deg
 
 ' CSAT3
 Public CSAT3_Vals(5)
@@ -132,17 +132,17 @@ Public LastWrittenFile_TC As String * 40
 Const FileInterval_TC = 6      '[h], every 6h create a new file
 Const FileTimeOnInt_TC = 0      'new file at midnight
 
-Const TableName_CSAT3B_upper_Monitor = "S1_CSAT3B_upper_mon"
-Const FileName_CSAT3B_upper_Monitor = "CRD:" & TableName_CSAT3B_upper_Monitor & "_"
-Const FileTimeOnInt_CSAT3B_upper_Monitor = 0    'new files at midnight
-Const FileInterval_CSAT3B_upper_Monitor = 24     'new file every 24 hours
-Public LastWrittenFile_CSAT3B_upper_Monitor As String * 40
+'Const TableName_CSAT3B_upper_Monitor = "S1_CSAT3B_upper_mon"
+'Const FileName_CSAT3B_upper_Monitor = "CRD:" & TableName_CSAT3B_upper_Monitor & "_"
+'Const FileTimeOnInt_CSAT3B_upper_Monitor = 0    'new files at midnight
+'Const FileInterval_CSAT3B_upper_Monitor = 24     'new file every 24 hours
+'Public LastWrittenFile_CSAT3B_upper_Monitor As String * 40
 
-Const TableName_CSAT3B_lower_Monitor = "S1_CSAT3B_lower_mon"
-Const FileName_CSAT3B_lower_Monitor = "CRD:" & TableName_CSAT3B_lower_Monitor & "_"
-Const FileTimeOnInt_CSAT3B_lower_Monitor = 0    'new files at midnight
-Const FileInterval_CSAT3B_lower_Monitor = 24     'new file every 24 hours
-Public LastWrittenFile_CSAT3B_lower_Monitor As String * 40
+'Const TableName_CSAT3B_lower_Monitor = "S1_CSAT3B_lower_mon"
+'Const FileName_CSAT3B_lower_Monitor = "CRD:" & TableName_CSAT3B_lower_Monitor & "_"
+'Const FileTimeOnInt_CSAT3B_lower_Monitor = 0    'new files at midnight
+'Const FileInterval_CSAT3B_lower_Monitor = 24     'new file every 24 hours
+'Public LastWrittenFile_CSAT3B_lower_Monitor As String * 40
 
 Const TableName_PRTData = "Silvia1_AirTemp_vent"
 Const FileName_PRTData = "CRD:" & TableName_PRTData & "_"
@@ -266,19 +266,19 @@ DataTable (TableName_Service,True,TableSize_Service)
   FieldNames ("BatteryVoltage_min:loggers minimum supply voltage [V]")
 EndTable
 
-DataTable (TableName_CSAT3B_upper_Monitor,True,-1)
-  DataInterval (0,SlowScanInterval,sec,10)
-  TableFile (FileName_CSAT3B_upper_Monitor,64,-1,FileTimeOnInt_CSAT3B_upper_Monitor,FileInterval_CSAT3B_upper_Monitor,hr,0,LastWrittenFile_CSAT3B_upper_Monitor)
-  Sample (4,CSAT3B_upper_MonitorVals(1),IEEE4)
-  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
-EndTable
+'DataTable (TableName_CSAT3B_upper_Monitor,True,-1)
+'  DataInterval (0,SlowScanInterval,sec,10)
+'  TableFile (FileName_CSAT3B_upper_Monitor,64,-1,FileTimeOnInt_CSAT3B_upper_Monitor,FileInterval_CSAT3B_upper_Monitor,hr,0,LastWrittenFile_CSAT3B_upper_Monitor)
+'  Sample (4,CSAT3B_upper_MonitorVals(1),IEEE4)
+'  FieldNames ("upperCSAT3B_ElectronicsTemp:temperature of electronics upperCSAT3B [°C],upperCSAT3B_ElectronicsRelHum:relative humidity of electronics upperCSAT3B [%],upperCSAT3B_TiltPitch:tilt pitch upperCSAT3B [°],upperCSAT3B_TiltRoll:tilt roll upperCSAT3B [°]")
+'EndTable
 
-DataTable (TableName_CSAT3B_lower_Monitor,True,-1)
-  DataInterval (0,SlowScanInterval,sec,10)
-  TableFile (FileName_CSAT3B_lower_Monitor,64,-1,FileTimeOnInt_CSAT3B_lower_Monitor,FileInterval_CSAT3B_lower_Monitor,hr,0,LastWrittenFile_CSAT3B_lower_Monitor)
-  Sample (4,CSAT3B_lower_MonitorVals(1),IEEE4)
-  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
-EndTable
+'DataTable (TableName_CSAT3B_lower_Monitor,True,-1)
+'  DataInterval (0,SlowScanInterval,sec,10)
+'  TableFile (FileName_CSAT3B_lower_Monitor,64,-1,FileTimeOnInt_CSAT3B_lower_Monitor,FileInterval_CSAT3B_lower_Monitor,hr,0,LastWrittenFile_CSAT3B_lower_Monitor)
+'  Sample (4,CSAT3B_lower_MonitorVals(1),IEEE4)
+'  FieldNames ("lowerCSAT3B_ElectronicsTemp:temperature of electronics lowerCSAT3B [°C],lowerCSAT3B_ElectronicsRelHum:relative humidity of electronics lowerCSAT3B [%],lowerCSAT3B_TiltPitch:tilt pitch lowerCSAT3B [°],lowerCSAT3B_TiltRoll:tilt roll lowerCSAT3B [°]")
+'EndTable
 
 DataTable (TableName_Status,True,MaxLines_Status)
     'this table contains several status information about the station
@@ -304,8 +304,8 @@ DataTable (TableName_Status,True,MaxLines_Status)
   FieldNames ("LastWrittenFile_PRTData:last file of reference temperature")
   Sample (1,LastWrittenFile_sonics, String)
   FieldNames ("LastWrittenFile_sonics: last file of sonics")
-  Sample (1, LastWrittenFile_CSAT3B_upper_Monitor, String)
-  FieldNames ("LastWrittenFile_CSAT3B_Monitor: last file of upper CSAT3B monitor")
+  'Sample (1, LastWrittenFile_CSAT3B_upper_Monitor, String)
+  'FieldNames ("LastWrittenFile_CSAT3B_Monitor: last file of upper CSAT3B monitor")
 EndTable
 
 '***   function & subroutines   ******************************************************
@@ -334,12 +334,12 @@ BeginProg
 '---   switch all instruments on   ---------------------------------------------------
   PortSet (FanCtrlPwr,True,1)                  'switch fan of radiation shield on
   PortSet (CSAT3_Pwr,True,1)                   'switch power supply of CSAT3 on
+  SW12 (SW12_1, 1, 1)                           'switch power supply of CSAT3Bs on (must be in scan loop)
+  SW12 (SW12_2, 1, 1)
   Delay (1,SensorsStartUpDelay,sec)             'wait for the instruments to be ready
 
 '---   main scan loop   --------------------------------------------------------------
   Scan (FastScanInterval,msec,10,0)
-    SW12 (SW12_1, 1, 0)                           'switch power supply of CSAT3Bs on (must be in scan loop)
-    SW12 (SW12_2, 1, 0)
     
     TCDiff(AirTempTC(),NumberOfTC,mV1000,TC_DIFFch,TC_Type,AirTempPRT,True,0,15000,1,0)
     'measure all TCs one after the other, of tower 1 and tower 2, with differential
@@ -388,14 +388,14 @@ BeginProg
       'need to include Pyranometer here
       VoltSe(CMP3_Rad,1,Pyr_Vrange,Pyr_SECh,True,0,15000,100,0) 
 
-      CSAT3BMonitor(CSAT3B_upper_MonitorVals(), 1, CSAT3B_upper_CPIaddr)
-      CSAT3BMonitor(CSAT3B_lower_MonitorVals(), 1, CSAT3B_lower_CPIaddr)      
+      'CSAT3BMonitor(CSAT3B_upper_MonitorVals(), 1, CSAT3B_upper_CPIaddr)
+      'CSAT3BMonitor(CSAT3B_lower_MonitorVals(), 1, CSAT3B_lower_CPIaddr)      
       
       CallTable TableName_PRTData
       CallTable TableName_Pyr
       CallTable TableName_Service
-      CallTable(TableName_CSAT3B_upper_Monitor)
-      CallTable(TableName_CSAT3B_lower_Monitor)
+      'CallTable TableName_CSAT3B_upper_Monitor
+      'CallTable TableName_CSAT3B_lower_Monitor
 
       If IfTime (StatTableTimeOnInt,StatTableInterval,Hr) Then
         GetStatus()                  'record status 

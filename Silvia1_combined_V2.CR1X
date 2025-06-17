@@ -22,8 +22,8 @@ ConstTable
 '  Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
 '  Const ServiceDataInterval = 30    'interval for general service data [min]
 
-  Const CSAT3B_upper_CPIaddr = 40          'CPI address of upper CSAT3B
-'  Const CSAT3B_lower_CPIaddr = 50          'CPI address of lower CSAT3B
+  Const CSAT3B_upper_CPIaddr = 50          'CPI address of upper CSAT3B
+'  Const CSAT3B_lower_CPIaddr = 40          'CPI address of lower CSAT3B
 '  Const CSAT3_SDMaddr = 9                  'SDM address of CSAT3, if not working try 11
 '  Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
 '  Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
@@ -190,7 +190,7 @@ EndTable
 BeginProg
   
 '---   switch all instruments on   ---------------------------------------------------
-'  SW12(SW12_1,1,1)                             'switch power supply of lower CSAT3B on
+  SW12(SW12_1,1,1)                             'switch power supply of lower CSAT3B on
   SW12(SW12_2,1,1)                             'switch power supply of upper CSAT3B on
 '  PortSet (CSAT3_Pwr,True,1)                   'switch power supply of CSAT3 on
   

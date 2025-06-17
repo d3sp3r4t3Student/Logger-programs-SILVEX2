@@ -1,7 +1,7 @@
 '---------------------------------------------
 ' Define Constants, Variables, and Aliases
 '---------------------------------------------
-Const CPI_ADDR = 50 'CPI Address of Device
+Const CPI_ADDR = 40 'CPI Address of Device
 Public CSATVals(5)
 Public CSATMonitorVals(4)
 Alias CSATVals(1) = Ux

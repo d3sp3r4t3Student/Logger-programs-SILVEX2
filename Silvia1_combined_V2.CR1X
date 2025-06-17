@@ -1,0 +1,211 @@
+'=========================================================================
+' Neues Programm fuer Silvia1 - noch unvollstaendig
+'=========================================================================
+' Stand 17.06.25 
+' 2 x CSAT3B 
+' 1 x CSAT3
+'---------------------------------------------
+' Define Constants, Variables, and Aliases
+'---------------------------------------------
+
+PipeLineMode             'run logger in pipeline mode, not in sequential mode
+
+'***   general&multi-purpose constant   ******************************************
+Const CSAT3B_Mode = 0       'measurements triggered by the logger
+Const CSAT3_Command = 91    'trigger and get sonic temperature and wind data
+
+'***   constants & configuration settings   ******************************************
+StationName (Silvia1)                     'assign stations name to the logger
+
+ConstTable
+  Const FastScanInterval = 50       'interval of main scan-loop in [ms], = 20Hz
+'  Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
+'  Const ServiceDataInterval = 30    'interval for general service data [min]
+
+  Const CSAT3B_upper_CPIaddr = 40          'CPI address of upper CSAT3B
+  Const CSAT3B_lower_CPIaddr = 50          'CPI address of lower CSAT3B
+  Const CSAT3_SDMaddr = 9                  'SDM address of CSAT3, if not working try 11
+  Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
+  Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
+
+'  Const NumberOfTC = 5        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
+'  Const TC_Type = 1         'TypeE, FW-thermocouples are made of chromel-constantan
+'  Const TC_DIFFch = 1       'differential channel of 1st TC
+''  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
+'
+'  Const PRT_DIFFch = 7    'first channel of 4 wire measurement 7 = SE13 (right click on func parameter to see list of options)
+'  Const PRT_VXch = Vx4      'exicitation on VX4 for PRT-measurement
+'  Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
+'  Const PRT_Vrange = mV200 '±200mV input range for BrHalf4W for R_PRT with less than
+'                           '  200µA to prevent self heating of the PRT
+'  Const PRT_Vex = 2050     '2050mV exitation voltage to correspond to input range
+'
+'  Const VentilatorPch = P2 'pulse channel for fan of radiation shield
+'
+'  Const FanCtrlPwr = C2             'power control of ventilator, NO
+'  Const FanPwrBattThreshold = 12.0   'if battery drops below, switch ventilator off [V]
+'  Const BattMin_Time = 15            'record batterys minimum over this time [min]
+'  Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
+'  Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
+'  Const FanPwrOffMain = 1080         '  to 18:00 wintertime (UTC+1) [min], during day
+'  Const FanPwrIntervalSec = 300      'interval for fan during night (5min) [s]
+'  Const FanPwrOnSec = 270            'starting at 4min 30s [s]
+'  Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
+'  Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
+'    '  reference temperature into datatable, same as for fan at night [s]
+'    
+'  Const Pyr_SECh = 12                'SE12 for CMP3 Pyranometer
+'  Const Pyr_Vrange = mV200           '±200mV input range for highest resolution on CR1000X
+'  Const Pyr_Mult = 1/0.01441         'multiplicator = 1/(sensitivity in mV)
+'
+'  Const PRT_TS32038 = False           'choose which PRT-sensor is used
+'  Const PRT_TS32110 = True          'coefficients are set by conditional compilation
+'  
+'    '***   calibration coefficients of PRTs (platinum resistance thermometer)   ***
+'  #If PRT_TS32038 Then
+'    Const PRTcalibCoeff0 = -250.836943           'C0 for SN TS32038
+'    Const PRTcalibCoeff1 = 2.401971*10^-1        'C1
+'    Const PRTcalibCoeff2 = 1.058416*10^-5        'C2
+'  #EndIf
+'  #If PRT_TS32110 Then
+'    Const PRTcalibCoeff0 = -251.580742           'C0 for SN TS32110
+'    Const PRTcalibCoeff1 = 2.403799*10^-1        'C1
+'    Const PRTcalibCoeff2 = 1.106622*10^-5        'C2
+'  #EndIf
+'
+''  ' set ports of Young Anemometer
+''  Const YoungAnemVXPort = Vx3
+''  Const YoungAnemWSPulseDIFF = P1
+''  Const YoungAnemWDSigSE = 11
+
+EndConstTable
+
+'***   general variables   ***********************************************************
+Const SensorsStartUpDelay = 60 'wait at program start for sensors to be ready [s]
+
+' Upper CSAT3B
+Public CSAT3B_upper_Vals(5)
+Alias CSAT3B_upper_Vals(1) = Ux_upper_CSAT3B
+Alias CSAT3B_upper_Vals(2) = Uy_upper_CSAT3B
+Alias CSAT3B_upper_Vals(3) = Uz_upper_CSAT3B
+Alias CSAT3B_upper_Vals(4) = Ts_upper_CSAT3B
+Alias CSAT3B_upper_Vals(5) = Diag_upper_CSAT3B
+Units Ux_upper_CSAT3B = m/s
+Units Uy_upper_CSAT3B = m/s
+Units Uz_upper_CSAT3B = m/s
+Units Ts_upper_CSAT3B = C
+Units Diag_upper_CSAT3B = arb
+
+' Lower CSAT3B
+Public CSAT3B_lower_Vals(5)
+Alias CSAT3B_lower_Vals(1) = Ux_lower_CSAT3B
+Alias CSAT3B_lower_Vals(2) = Uy_lower_CSAT3B
+Alias CSAT3B_lower_Vals(3) = Uz_lower_CSAT3B
+Alias CSAT3B_lower_Vals(4) = Ts_lower_CSAT3B
+Alias CSAT3B_lower_Vals(5) = Diag_lower_CSAT3B
+Units Ux_lower_CSAT3B = m/s
+Units Uy_lower_CSAT3B = m/s
+Units Uz_lower_CSAT3B = m/s
+Units Ts_lower_CSAT3B = C
+Units Diag_lower_CSAT3B = arb
+
+' CSAT3
+Public CSAT3_Vals(5)
+Alias CSAT3_Vals(1) = Ux_CSAT3
+Alias CSAT3_Vals(2) = Uy_CSAT3
+Alias CSAT3_Vals(3) = Uz_CSAT3
+Alias CSAT3_Vals(4) = Ts_CSAT3
+Alias CSAT3_Vals(5) = Diag_CSAT3
+Units Ux_CSAT3 = m/s
+Units Uy_CSAT3 = m/s
+Units Uz_CSAT3 = m/s
+Units Ts_CSAT3 = C
+Units Diag_CSAT3 = arb
+
+
+'***   constants & variables for table and file handling  ****************************
+Const TableName_sonics = "Silvia1_sonics"
+Const FileName_sonics = "CRD:" & TableName_sonics & "_"
+Const FileTimeOnInt_sonics = 0    'new files at midnight
+Const FileInterval_sonics = 6     'new file every 6 hours
+Public LastWrittenFile_sonics As String * 40
+
+'---------------------------------------------
+' Define Data Tables
+'---------------------------------------------
+
+DataTable (TableName_sonics,True,-1) 
+    'this table contains all data from the
+    '  CSAT3Bs and the CSAT3
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
+  TableFile(FileName_sonics,64,-1,FileTimeOnInt_sonics,FileInterval_sonics,hr,-1,LastWrittenFile_sonics)
+  ' CSAT3B Upper
+  Sample(1, CSAT3B_upper_Vals(1), IEEE4)
+  FieldNames("CSAT3B_Upper_Ux:Upper CSAT3B Ux [m/s]")
+  Sample(1, CSAT3B_upper_Vals(2), IEEE4)
+  FieldNames("CSAT3B_Upper_Uy:Upper CSAT3B Uy [m/s]")
+  Sample(1, CSAT3B_upper_Vals(3), IEEE4)
+  FieldNames("CSAT3B_Upper_Uz:Upper CSAT3B Uz [m/s]")
+  Sample(1, CSAT3B_upper_Vals(4), IEEE4)
+  FieldNames("CSAT3B_Upper_Ts:Upper CSAT3B TempAirSonic [°C]")
+  Sample(1, CSAT3B_upper_Vals(5), IEEE4)
+  FieldNames("CSAT3B_Upper_Diagnostic:Upper CSAT3B diag")
+  
+  ' CSAT3B Lower
+  Sample(1, CSAT3B_lower_Vals(1), IEEE4)
+  FieldNames("CSAT3B_Lower_Ux:Lower CSAT3B Ux [m/s]")
+  Sample(1, CSAT3B_lower_Vals(2), IEEE4)
+  FieldNames("CSAT3B_Lower_Uy:Lower CSAT3B Uy [m/s]")
+  Sample(1, CSAT3B_lower_Vals(3), IEEE4)
+  FieldNames("CSAT3B_Lower_Uz:Lower CSAT3B Uz [m/s]")
+  Sample(1, CSAT3B_lower_Vals(4), IEEE4)
+  FieldNames("CSAT3B_Lower_Ts:Lower CSAT3B TempAirSonic [°C]")
+  Sample(1, CSAT3B_lower_Vals(5), IEEE4)
+  FieldNames("CSAT3B_Lower_Diagnostic:Lower CSAT3B diag")
+  
+  ' CSAT3
+  Sample(1, CSAT3_Vals(1), IEEE4)
+  FieldNames("CSAT3_Ux:CSAT3 Ux [m/s]")
+  Sample(1, CSAT3_Vals(2), IEEE4)
+  FieldNames("CSAT3_Uy:CSAT3 Uy [m/s]")
+  Sample(1, CSAT3_Vals(3), IEEE4)
+  FieldNames("CSAT3_Uz:CSAT3 Uz [m/s]")
+  Sample(1, CSAT3_Vals(4), IEEE4)
+  FieldNames("CSAT3_Ts:CSAT3 TempAirSonic [°C]")
+  Sample(1, CSAT3_Vals(5), IEEE4)
+  FieldNames("CSAT3_Diagnostic:CSAT3 diag")
+EndTable
+
+
+'---------------------------------------------
+' Logger Interface Initialization
+'---------------------------------------------
+
+SDMBeginPort (CSAT3_SDMport)       'configure SDM port on C5, C6 and C7
+
+'---------------------------------------------
+' Main Program
+'---------------------------------------------
+
+BeginProg
+  
+'---   switch all instruments on   ---------------------------------------------------
+  SW12(SW12_1,1,1)
+  SW12(SW12_2,1,1)
+  
+'---   delay the scan loop to give sensors time for booting   ------------------------
+  Delay(1,SensorsStartUpDelay,sec)
+  
+'---   main scan loop   --------------------------------------------------------------
+  Scan (FastScanInterval,msec,10,0)
+    
+    ' measure the sonics
+    CSAT3B(CSAT3B_upper_Vals(), 1, CSAT3B_upper_CPIaddr, CSAT3B_Mode)
+    CSAT3B(CSAT3B_lower_Vals(), 1, CSAT3B_lower_CPIaddr, CSAT3B_Mode)
+    CSAT3(CSAT3_Vals(), 1, CSAT3_SDMaddr, CSAT3_Command, 20)
+      
+    CallTable TableName_sonics
+
+  NextScan
+  
+EndProg

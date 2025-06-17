@@ -10,21 +10,21 @@
 
 '***   general&multi-purpose constant   ******************************************
 Const CSAT3B_Mode = 0       'measurements triggered by the logger
-'Const CSAT3_Command = 91    'trigger and get sonic temperature and wind data
+Const CSAT3_Command = 91    'trigger and get sonic temperature and wind data
 
 '***   constants & configuration settings   ******************************************
 StationName (Silvia1)                     'assign stations name to the logger
 
 ConstTable
   Const FastScanInterval = 50       'interval of main scan-loop in [ms], = 20Hz
-'  Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
+  Const SlowScanInterval = 5        'interval of slow sequence scan in [s]
 '  Const ServiceDataInterval = 30    'interval for general service data [min]
 
   Const CSAT3B_upper_CPIaddr = 50          'CPI address of upper CSAT3B
-'  Const CSAT3B_lower_CPIaddr = 40          'CPI address of lower CSAT3B
-'  Const CSAT3_SDMaddr = 9                  'SDM address of CSAT3, if not working try 11
-'  Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
-'  Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
+  Const CSAT3B_lower_CPIaddr = 40          'CPI address of lower CSAT3B
+  Const CSAT3_SDMaddr = 9                  'SDM address of CSAT3, if not working try 11
+  Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
+  Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
 
 '  Const NumberOfTC = 5        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
 '  Const TC_Type = 1         'TypeE, FW-thermocouples are made of chromel-constantan
@@ -83,6 +83,7 @@ Const SensorsStartUpDelay = 60 'wait at program start for sensors to be ready [s
 
 ' Upper CSAT3B
 Public CSAT3B_upper_Vals(5)
+Public CSATMonitorVals_upper(4)
 Alias CSAT3B_upper_Vals(1) = Ux_upper_CSAT3B
 Alias CSAT3B_upper_Vals(2) = Uy_upper_CSAT3B
 Alias CSAT3B_upper_Vals(3) = Uz_upper_CSAT3B
@@ -93,32 +94,41 @@ Units Uy_upper_CSAT3B = m/s
 Units Uz_upper_CSAT3B = m/s
 Units Ts_upper_CSAT3B = C
 Units Diag_upper_CSAT3B = arb
+Alias CSATMonitorVals_upper(1) = BoardTemp_upper
+Alias CSATMonitorVals_upper(2) = BoardHumidity_upper
+Alias CSATMonitorVals_upper(3) = InclinePitch_upper
+Alias CSATMonitorVals_upper(4) = InclineRoll_upper
 
-'' Lower CSAT3B
-'Public CSAT3B_lower_Vals(5)
-'Alias CSAT3B_lower_Vals(1) = Ux_lower_CSAT3B
-'Alias CSAT3B_lower_Vals(2) = Uy_lower_CSAT3B
-'Alias CSAT3B_lower_Vals(3) = Uz_lower_CSAT3B
-'Alias CSAT3B_lower_Vals(4) = Ts_lower_CSAT3B
-'Alias CSAT3B_lower_Vals(5) = Diag_lower_CSAT3B
-'Units Ux_lower_CSAT3B = m/s
-'Units Uy_lower_CSAT3B = m/s
-'Units Uz_lower_CSAT3B = m/s
-'Units Ts_lower_CSAT3B = C
-'Units Diag_lower_CSAT3B = arb
-'
-'' CSAT3
-'Public CSAT3_Vals(5)
-'Alias CSAT3_Vals(1) = Ux_CSAT3
-'Alias CSAT3_Vals(2) = Uy_CSAT3
-'Alias CSAT3_Vals(3) = Uz_CSAT3
-'Alias CSAT3_Vals(4) = Ts_CSAT3
-'Alias CSAT3_Vals(5) = Diag_CSAT3
-'Units Ux_CSAT3 = m/s
-'Units Uy_CSAT3 = m/s
-'Units Uz_CSAT3 = m/s
-'Units Ts_CSAT3 = C
-'Units Diag_CSAT3 = arb
+' Lower CSAT3B
+Public CSAT3B_lower_Vals(5)
+Public CSATMonitorVals_lower(4)
+Alias CSAT3B_lower_Vals(1) = Ux_lower_CSAT3B
+Alias CSAT3B_lower_Vals(2) = Uy_lower_CSAT3B
+Alias CSAT3B_lower_Vals(3) = Uz_lower_CSAT3B
+Alias CSAT3B_lower_Vals(4) = Ts_lower_CSAT3B
+Alias CSAT3B_lower_Vals(5) = Diag_lower_CSAT3B
+Units Ux_lower_CSAT3B = m/s
+Units Uy_lower_CSAT3B = m/s
+Units Uz_lower_CSAT3B = m/s
+Units Ts_lower_CSAT3B = C
+Units Diag_lower_CSAT3B = arb
+Alias CSATMonitorVals_lower(1) = BoardTemp_lower
+Alias CSATMonitorVals_lower(2) = BoardHumidity_lower
+Alias CSATMonitorVals_lower(3) = InclinePitch_lower
+Alias CSATMonitorVals_lower(4) = InclineRoll_lower
+
+' CSAT3
+Public CSAT3_Vals(5)
+Alias CSAT3_Vals(1) = Ux_CSAT3
+Alias CSAT3_Vals(2) = Uy_CSAT3
+Alias CSAT3_Vals(3) = Uz_CSAT3
+Alias CSAT3_Vals(4) = Ts_CSAT3
+Alias CSAT3_Vals(5) = Diag_CSAT3
+Units Ux_CSAT3 = m/s
+Units Uy_CSAT3 = m/s
+Units Uz_CSAT3 = m/s
+Units Ts_CSAT3 = C
+Units Diag_CSAT3 = arb
 
 
 '***   constants & variables for table and file handling  ****************************
@@ -135,43 +145,22 @@ Public LastWrittenFile_sonics As String * 40
 DataTable (TableName_sonics,True,-1) 
     'this table contains all data from the
     '  CSAT3Bs and the CSAT3
-  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
   TableFile(FileName_sonics,64,-1,FileTimeOnInt_sonics,FileInterval_sonics,hr,-1,LastWrittenFile_sonics)
   ' CSAT3B Upper
-  Sample(1, CSAT3B_upper_Vals(1), IEEE4)
-  FieldNames("CSAT3B_Upper_Ux:Upper CSAT3B Ux [m/s]")
-  Sample(1, CSAT3B_upper_Vals(2), IEEE4)
-  FieldNames("CSAT3B_Upper_Uy:Upper CSAT3B Uy [m/s]")
-  Sample(1, CSAT3B_upper_Vals(3), IEEE4)
-  FieldNames("CSAT3B_Upper_Uz:Upper CSAT3B Uz [m/s]")
-  Sample(1, CSAT3B_upper_Vals(4), IEEE4)
-  FieldNames("CSAT3B_Upper_Ts:Upper CSAT3B TempAirSonic [°C]")
-  Sample(1, CSAT3B_upper_Vals(5), IEEE4)
-  FieldNames("CSAT3B_Upper_Diagnostic:Upper CSAT3B diag")
+  Sample(5, CSAT3B_upper_Vals(1), IEEE4)
   
-'  ' CSAT3B Lower
-'  Sample(1, CSAT3B_lower_Vals(1), IEEE4)
-'  FieldNames("CSAT3B_Lower_Ux:Lower CSAT3B Ux [m/s]")
-'  Sample(1, CSAT3B_lower_Vals(2), IEEE4)
-'  FieldNames("CSAT3B_Lower_Uy:Lower CSAT3B Uy [m/s]")
-'  Sample(1, CSAT3B_lower_Vals(3), IEEE4)
-'  FieldNames("CSAT3B_Lower_Uz:Lower CSAT3B Uz [m/s]")
-'  Sample(1, CSAT3B_lower_Vals(4), IEEE4)
-'  FieldNames("CSAT3B_Lower_Ts:Lower CSAT3B TempAirSonic [°C]")
-'  Sample(1, CSAT3B_lower_Vals(5), IEEE4)
-'  FieldNames("CSAT3B_Lower_Diagnostic:Lower CSAT3B diag")
-'  
-'  ' CSAT3
-'  Sample(1, CSAT3_Vals(1), IEEE4)
-'  FieldNames("CSAT3_Ux:CSAT3 Ux [m/s]")
-'  Sample(1, CSAT3_Vals(2), IEEE4)
-'  FieldNames("CSAT3_Uy:CSAT3 Uy [m/s]")
-'  Sample(1, CSAT3_Vals(3), IEEE4)
-'  FieldNames("CSAT3_Uz:CSAT3 Uz [m/s]")
-'  Sample(1, CSAT3_Vals(4), IEEE4)
-'  FieldNames("CSAT3_Ts:CSAT3 TempAirSonic [°C]")
-'  Sample(1, CSAT3_Vals(5), IEEE4)
-'  FieldNames("CSAT3_Diagnostic:CSAT3 diag")
+  ' CSAT3B Lower
+  Sample(5, CSAT3B_lower_Vals(1), IEEE4)
+  
+  ' CSAT3
+  Sample(5, CSAT3_Vals(1), IEEE4)
+
+EndTable
+
+DataTable (MonitorData,1,-1)
+  DataInterval (0,5,Sec,10)
+  Sample (4,CSATMonitorVals_lower(1),IEEE4)
+  Sample (4,CSATMonitorVals_upper(1),IEEE4)
 EndTable
 
 
@@ -179,7 +168,7 @@ EndTable
 ' Logger Interface Initialization
 '---------------------------------------------
 
-'SDMBeginPort (CSAT3_SDMport)       'configure SDM port on C5, C6 and C7
+SDMBeginPort (CSAT3_SDMport)       'configure SDM port on C5, C6 and C7
 
 '---------------------------------------------
 ' Main Program
@@ -198,15 +187,23 @@ BeginProg
   Delay(1,SensorsStartUpDelay,sec)
   
 '---   main scan loop   --------------------------------------------------------------
-  Scan (FastScanInterval,msec,10,0)
+  Scan (FastScanInterval,msec,500,0)
     
     ' measure the sonics
     CSAT3B(CSAT3B_upper_Vals(), 1, CSAT3B_upper_CPIaddr, CSAT3B_Mode)
-'    CSAT3B(CSAT3B_lower_Vals(), 1, CSAT3B_lower_CPIaddr, CSAT3B_Mode)
-'    CSAT3(CSAT3_Vals(), 1, CSAT3_SDMaddr, CSAT3_Command, 20)
+    CSAT3B(CSAT3B_lower_Vals(), 1, CSAT3B_lower_CPIaddr, CSAT3B_Mode)
+    CSAT3(CSAT3_Vals(), 1, CSAT3_SDMaddr, CSAT3_Command, 20)
       
-    CallTable TableName_sonics
+    CallTable(TableName_sonics)
 
+  NextScan
+  
+  SlowSequence
+  Scan(5,sec,0,0) '5 second scan
+    'CSAT3BMonitor(Destination, Bus, Address)
+    CSAT3BMonitor(CSATMonitorVals_lower(),1,CSAT3B_lower_CPIaddr)
+    CSAT3BMonitor(CSATMonitorVals_upper(),1,CSAT3B_upper_CPIaddr)
+    CallTable(MonitorData)
   NextScan
   
 EndProg

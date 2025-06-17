@@ -63,6 +63,7 @@ EndTable
 PipeLineMode
 
 BeginProg
+  PortSet(C1,True,1)
   SW12(SW12_1,1,1)
   SW12(SW12_2,1,1)
   Delay(1,60,sec)

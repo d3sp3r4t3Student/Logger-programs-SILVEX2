@@ -181,7 +181,7 @@ BeginProg
 '---   switch all instruments on   ---------------------------------------------------
   SW12(SW12_1,1,1)                             'switch power supply of lower CSAT3B on
   SW12(SW12_2,1,1)                             'switch power supply of upper CSAT3B on
-'  PortSet (CSAT3_Pwr,True,1)                   'switch power supply of CSAT3 on
+  PortSet (CSAT3_Pwr,True,1)                   'switch power supply of CSAT3 on
   
 '---   delay the scan loop to give sensors time for booting   ------------------------
   Delay(1,SensorsStartUpDelay,sec)

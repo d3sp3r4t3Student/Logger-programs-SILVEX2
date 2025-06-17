@@ -25,8 +25,6 @@
 '
 '**************************************************************************
 
-PipelineMode             'run logger in pipeline mode, not in sequential mode
-
 '***   constants & configuration settings declared in a separate file   **************
 Include "CPU:Silvia1_system_settings.cr1x"   'include separate file
 
@@ -326,6 +324,9 @@ EndFunction
 SDMBeginPort (CSAT3_SDMport)       'configure SDM port on C5, C6 and C7
 
 '***   main program   ****************************************************************
+
+PipeLineMode             'run logger in pipeline mode, not in sequential mode
+
 BeginProg
 
   GetStatus()              'read station status and save the startup-values

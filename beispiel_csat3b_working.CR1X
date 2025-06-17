@@ -26,11 +26,12 @@ EndTable
 '---------------------------------------------
 ' Main Program
 '---------------------------------------------
-SequentialMode
+PipelineMode
 
 BeginProg
   SW12(SW12_1,1,1)
   SW12(SW12_2,1,1)
+  Delay(1,60,sec)
   Scan(50,msec,500,0) '20 Hz Scan
     'CSAT3B(Destination, Bus, Address, OperatingMode)
     CSAT3B(CSATVals(),1,CPI_ADDR,0)

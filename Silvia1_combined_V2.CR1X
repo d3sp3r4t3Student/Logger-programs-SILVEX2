@@ -6,9 +6,7 @@
 ' 1 x CSAT3
 '---------------------------------------------
 ' Define Constants, Variables, and Aliases
-'---------------------------------------------
-
-PipeLineMode             'run logger in pipeline mode, not in sequential mode
+'--------------------------------------------
 
 '***   general&multi-purpose constant   ******************************************
 Const CSAT3B_Mode = 0       'measurements triggered by the logger
@@ -186,6 +184,8 @@ EndTable
 '---------------------------------------------
 ' Main Program
 '---------------------------------------------
+
+PipeLineMode             'run logger in pipeline mode, not in sequential mode
 
 BeginProg
   

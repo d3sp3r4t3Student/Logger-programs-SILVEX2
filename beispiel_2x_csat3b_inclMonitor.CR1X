@@ -38,6 +38,7 @@ EndTable
 DataTable (MonitorData,1,-1)
   DataInterval (0,5,Sec,10)
   Sample (4,CSATMonitorVals_lower(1),IEEE4)
+  Sample (4,CSATMonitorVals_upper(1),IEEE4)
 EndTable
 '---------------------------------------------
 ' Main Program

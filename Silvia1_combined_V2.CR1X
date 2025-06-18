@@ -26,55 +26,55 @@ ConstTable
   Const CSAT3_SDMport = C5                 'SDM port of CSAT3, necessary for sonfiguration 
   Const CSAT3_Pwr = C1                     'Power supply port of CSAT3
 
-'  Const NumberOfTC = 5        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
-'  Const TC_Type = 1         'TypeE, FW-thermocouples are made of chromel-constantan
-'  Const TC_DIFFch = 1       'differential channel of 1st TC
-''  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
-'
-'  Const PRT_DIFFch = 7    'first channel of 4 wire measurement 7 = SE13 (right click on func parameter to see list of options)
-'  Const PRT_VXch = Vx4      'exicitation on VX4 for PRT-measurement
-'  Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
-'  Const PRT_Vrange = mV200 '±200mV input range for BrHalf4W for R_PRT with less than
-'                           '  200µA to prevent self heating of the PRT
-'  Const PRT_Vex = 2050     '2050mV exitation voltage to correspond to input range
-'
-'  Const VentilatorPch = P2 'pulse channel for fan of radiation shield
-'
-'  Const FanCtrlPwr = C2             'power control of ventilator, NO
-'  Const FanPwrBattThreshold = 12.0   'if battery drops below, switch ventilator off [V]
-'  Const BattMin_Time = 15            'record batterys minimum over this time [min]
-'  Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
-'  Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
-'  Const FanPwrOffMain = 1080         '  to 18:00 wintertime (UTC+1) [min], during day
-'  Const FanPwrIntervalSec = 300      'interval for fan during night (5min) [s]
-'  Const FanPwrOnSec = 270            'starting at 4min 30s [s]
-'  Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
-'  Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
-'    '  reference temperature into datatable, same as for fan at night [s]
-'    
-'  Const Pyr_SECh = 12                'SE12 for CMP3 Pyranometer
-'  Const Pyr_Vrange = mV200           '±200mV input range for highest resolution on CR1000X
-'  Const Pyr_Mult = 1/0.01441         'multiplicator = 1/(sensitivity in mV)
-'
-'  Const PRT_TS32038 = False           'choose which PRT-sensor is used
-'  Const PRT_TS32110 = True          'coefficients are set by conditional compilation
-'  
-'    '***   calibration coefficients of PRTs (platinum resistance thermometer)   ***
-'  #If PRT_TS32038 Then
-'    Const PRTcalibCoeff0 = -250.836943           'C0 for SN TS32038
-'    Const PRTcalibCoeff1 = 2.401971*10^-1        'C1
-'    Const PRTcalibCoeff2 = 1.058416*10^-5        'C2
-'  #EndIf
-'  #If PRT_TS32110 Then
-'    Const PRTcalibCoeff0 = -251.580742           'C0 for SN TS32110
-'    Const PRTcalibCoeff1 = 2.403799*10^-1        'C1
-'    Const PRTcalibCoeff2 = 1.106622*10^-5        'C2
-'  #EndIf
-'
-''  ' set ports of Young Anemometer
-''  Const YoungAnemVXPort = Vx3
-''  Const YoungAnemWSPulseDIFF = P1
-''  Const YoungAnemWDSigSE = 11
+  Const NumberOfTC = 5        'amount of thermocouples on tower 1 ---- set to 0 for SILVEX2 in the hope that we record all TC in fast data table 2
+  Const TC_Type = 1         'TypeE, FW-thermocouples are made of chromel-constantan
+  Const TC_DIFFch = 1       'differential channel of 1st TC
+'  Const TC_Type = 0        'TypeT, for first test, small couper-constantan TC
+
+  Const PRT_DIFFch = 7    'first channel of 4 wire measurement 7 = SE13 (right click on func parameter to see list of options)
+  Const PRT_VXch = Vx4      'exicitation on VX4 for PRT-measurement
+  Const PRT_Mul = 1000     'as we use a calibrated sensor, output of BrHalf4W in Ω
+  Const PRT_Vrange = mV200 '±200mV input range for BrHalf4W for R_PRT with less than
+                           '  200µA to prevent self heating of the PRT
+  Const PRT_Vex = 2050     '2050mV exitation voltage to correspond to input range
+
+  Const VentilatorPch = P2 'pulse channel for fan of radiation shield
+
+  Const FanCtrlPwr = C2             'power control of ventilator, NO
+  Const FanPwrBattThreshold = 12.0   'if battery drops below, switch ventilator off [V]
+  Const BattMin_Time = 15            'record batterys minimum over this time [min]
+  Const FanPwrIntervalMain = 1440    'switch on interval into the day [min]
+  Const FanPwrOnMain = 360           'ventilator on from 6:00 wintertime (UTC+1) [min]
+  Const FanPwrOffMain = 1080         '  to 18:00 wintertime (UTC+1) [min], during day
+  Const FanPwrIntervalSec = 300      'interval for fan during night (5min) [s]
+  Const FanPwrOnSec = 270            'starting at 4min 30s [s]
+  Const FanPwrOffSec = 300           'switching fan off at fifth minute again [s]
+  Const TempRefDatatableNightInterval = FanPwrIntervalSec          'interval to write
+    '  reference temperature into datatable, same as for fan at night [s]
+    
+  Const Pyr_SECh = 12                'SE12 for CMP3 Pyranometer
+  Const Pyr_Vrange = mV200           '±200mV input range for highest resolution on CR1000X
+  Const Pyr_Mult = 1/0.01441         'multiplicator = 1/(sensitivity in mV)
+
+  Const PRT_TS32038 = False           'choose which PRT-sensor is used
+  Const PRT_TS32110 = True          'coefficients are set by conditional compilation
+  
+    '***   calibration coefficients of PRTs (platinum resistance thermometer)   ***
+  #If PRT_TS32038 Then
+    Const PRTcalibCoeff0 = -250.836943           'C0 for SN TS32038
+    Const PRTcalibCoeff1 = 2.401971*10^-1        'C1
+    Const PRTcalibCoeff2 = 1.058416*10^-5        'C2
+  #EndIf
+  #If PRT_TS32110 Then
+    Const PRTcalibCoeff0 = -251.580742           'C0 for SN TS32110
+    Const PRTcalibCoeff1 = 2.403799*10^-1        'C1
+    Const PRTcalibCoeff2 = 1.106622*10^-5        'C2
+  #EndIf
+
+'  ' set ports of Young Anemometer
+'  Const YoungAnemVXPort = Vx3
+'  Const YoungAnemWSPulseDIFF = P1
+'  Const YoungAnemWDSigSE = 11
 
 EndConstTable
 
@@ -130,6 +130,29 @@ Units Uz_CSAT3 = m/s
 Units Ts_CSAT3 = C
 Units Diag_CSAT3 = arb
 
+Public AirTempTC(NumberOfTC) : Units AirTempTC() = °C
+  'temperatures of all thermocouples
+
+Public AirTempPRT : Units AirTempPRT = °C                'reference temperature
+Public PRT_resistance : Units PRT_resistance = Ω         'resistance of PRT
+'Public VentilatorSpeed : Units VentilatorSpeed = Hz
+  'speed of fan (actually its frequency) from ventilated radiation shield
+  
+'' Young anemometer variables
+'Public WS_ms 'wind speed in m/s
+'Public WindDir 'wind dir in degrees
+'Units WS_ms = m/s
+'Units WindDir = Degrees
+
+'Pyranometer variable
+Public CMP3_Rad  ' Solar radiation in W/m²
+
+Public LoggerTemp : Units LoggerTemp = °C      'system variables
+Public BatteryVoltage : Units BatteryVoltage = V
+Public BatteryVoltage_min : Units BatteryVoltage_min = V
+Const BattMin_RunNr = BattMin_Time * 60 / SlowScanInterval
+                                               'number of values for running minimum
+
 
 '***   constants & variables for table and file handling  ****************************
 Const TableName_sonics = "Silvia1_sonics"
@@ -138,6 +161,31 @@ Const FileTimeOnInt_sonics = 0    'new files at midnight
 Const FileInterval_sonics = 6     'new file every 6 hours
 Public LastWrittenFile_sonics As String * 40
 
+Const TableName_TC = "Silvia1_TC"
+Const FileName_TC = "CRD:" & TableName_TC & "_"
+Public LastWrittenFile_TC As String * 40
+Const FileInterval_TC = 6      '[h], every 6h create a new file
+Const FileTimeOnInt_TC = 0      'new file at midnight
+
+Const TableName_PRTData = "Silvia1_AirTemp_vent"
+Const FileName_PRTData = "CRD:" & TableName_PRTData & "_"
+Public LastWrittenFile_PRTData As String * 40
+Const FileInterval_AirTemp = 24      '[h], every 24h create a new file
+Const FileTimeOnInt_AirTemp = 0      'new file at midnight
+
+Const TableName_Pyr = "Silvia1_Pyr"
+Const FileName_Pyr = "CRD:" & TableName_Pyr & "_"
+Public LastWrittenFile_Pyr As String * 40
+Const FileInterval_Pyr = 24      '[h], every 24h create a new file
+Const FileTimeOnInt_Pyr = 0      'new file at midnight
+
+Const TableName_Status = "Silvia1_StationStat"
+Const FileName_Status = "CRD:" & TableName_Status & "_"
+Const MaxLines_Status = 100          'create a new file after 100 records
+'Public LastWrittenFile_Status As String * 40
+Const StatTableInterval = 24        'interval of status-table called [h], daily
+Const StatTableTimeOnInt = 0        'time into interval [h], midnight
+
 '---------------------------------------------
 ' Define Data Tables
 '---------------------------------------------
@@ -145,6 +193,7 @@ Public LastWrittenFile_sonics As String * 40
 DataTable (TableName_sonics,True,-1) 
     'this table contains all data from the
     '  CSAT3Bs and the CSAT3
+  DataInterval (0,FastScanInterval,mSec,0)     'samples of each fast scan
   TableFile(FileName_sonics,64,-1,FileTimeOnInt_sonics,FileInterval_sonics,hr,-1,LastWrittenFile_sonics)
   ' CSAT3B Upper
   Sample(5, CSAT3B_upper_Vals(1), IEEE4)
@@ -157,8 +206,34 @@ DataTable (TableName_sonics,True,-1)
 
 EndTable
 
+DataTable (TableName_TC,True,-1) 
+    'this table contains all data from the TCs
+  TableFile(FileName_TC,64,-1,FileTimeOnInt_TC,FileInterval_TC,hr,-1,LastWrittenFile_TC)
+  Sample (NumberOfTC,AirTempTC(1),IEEE4)
+    'values from all 5 thermocouples [°C]
+  FieldNames ("AirTempTC1:AirTemp TC1 [°C],AirTempTC2:tower2 AirTemp TC2 [°C],AirTempTC3:AirTemp TC3 [°C],AirTempTC4:AirTemp TC4 [°C],AirTempTC5:AirTemp TC5 [°C]")
+EndTable
+
+DataTable (TableName_PRTData,1,-1)
+    'this table contains the air temperature measured with the ventilated PRT sensor
+    '  its storing interval is during day the same as the
+    '  slow scan interval and during night at a certain interval, set by a query in
+    '  the slow scan although the table is called in the fast scan
+  DataInterval (0,SlowScanInterval,sec,10)      'samples from each slow scan
+  TableFile (FileName_PRTData,64,-1,FileTimeOnInt_AirTemp,FileInterval_AirTemp,hr,-1,LastWrittenFile_PRTData)
+  Sample (1,AirTempPRT,IEEE4)                   'air temperature from Tvent
+  FieldNames ("AirTemp:ventilated temperature reference [°C]")
+EndTable
+
+DataTable (TableName_Pyr,1,-1)
+  DataInterval (0,SlowScanInterval,sec,10)      'samples from each slow scan
+  TableFile (FileName_Pyr,64,-1,FileTimeOnInt_Pyr,FileInterval_Pyr,hr,-1,LastWrittenFile_Pyr)
+  Sample (1,CMP3_Rad,IEEE4)                   'air temperature from Tvent
+  FieldNames ("CMP3 Pyranometer:Incoming short wave radiation [W/m^2]")
+EndTable
+
 DataTable (MonitorData,1,-1)
-  DataInterval (0,5,Sec,10)
+  DataInterval (0,SlowScanInterval,sec,10)
   Sample (4,CSATMonitorVals_lower(1),IEEE4)
   Sample (4,CSATMonitorVals_upper(1),IEEE4)
 EndTable
@@ -182,6 +257,7 @@ BeginProg
   SW12(SW12_1,1,1)                             'switch power supply of lower CSAT3B on
   SW12(SW12_2,1,1)                             'switch power supply of upper CSAT3B on
   PortSet (CSAT3_Pwr,True,1)                   'switch power supply of CSAT3 on
+  PortSet (FanCtrlPwr,True,1)                  'switch fan of radiation shield on
   
 '---   delay the scan loop to give sensors time for booting   ------------------------
   Delay(1,SensorsStartUpDelay,sec)
@@ -195,15 +271,47 @@ BeginProg
     CSAT3(CSAT3_Vals(), 1, CSAT3_SDMaddr, CSAT3_Command, 20)
       
     CallTable(TableName_sonics)
+    
+    TCDiff(AirTempTC(),NumberOfTC,mV1000,TC_DIFFch,TC_Type,AirTempPRT,True,0,15000,1,0)
+    'measure all TCs one after the other, with differential measurement
+      
+    CallTable TableName_TC
 
   NextScan
   
   SlowSequence
-  Scan(5,sec,0,0) '5 second scan
-    'CSAT3BMonitor(Destination, Bus, Address)
-    CSAT3BMonitor(CSATMonitorVals_lower(),1,CSAT3B_lower_CPIaddr)
-    CSAT3BMonitor(CSATMonitorVals_upper(),1,CSAT3B_upper_CPIaddr)
-    CallTable(MonitorData)
-  NextScan
   
+    Scan(5,sec,0,0) '5 second scan
+      Battery (BatteryVoltage)       'measure the voltage of the supply
+      MinRun (BatteryVoltage_min,1,BatteryVoltage,BattMin_RunNr)
+        'calculate the minimum of the batterys voltage, to decide if power devices on
+      PanelTemp (LoggerTemp,250)     'to measure panels temp. again doesn't make sense
+      
+      'Tvent measurements
+      BrHalf4W (PRT_resistance,1,PRT_Vrange,PRT_Vrange,PRT_DIFFch,PRT_VXch,1,PRT_Vex,True,True,0,_50Hz,PRT_Mul,0)
+        'measure platinum resistance thermometer with 4 wire half bridge measurement
+      AirTempPRT = PRTcalibCoeff0 + PRT_resistance * PRTcalibCoeff1 + PRT_resistance^2 * PRTcalibCoeff2
+        'calculate the exact temperature with the calibration coefficients   
+
+'      'Young Anemometer wind direction measurement !!!disabled because of a too high scan load!!!
+'      BrHalf(WindDir, 1, AutoRange, YoungAnemWDSigSE, YoungAnemVXPort, 1, 2500, True,20000, 60, 355, 0)
+'        'measure wind direction of the Young anemometer
+'      If WindDir>=355 OR WindDir<0 Then WindDir=0
+'        'Correct invalid young anemometer wind direction readings
+'      
+'      CallTable TableName_YoungAnem
+      
+      VoltSe(CMP3_Rad,1,Pyr_Vrange,Pyr_SECh,True,0,15000,100,0)
+       
+      CSAT3BMonitor(CSATMonitorVals_lower(),1,CSAT3B_lower_CPIaddr)
+      
+      CSAT3BMonitor(CSATMonitorVals_upper(),1,CSAT3B_upper_CPIaddr)
+      
+      CallTable(MonitorData)
+      CallTable(TableName_PRTData)
+      CallTable(TableName_Pyr)
+    NextScan
+    
+  EndSequence  
+
 EndProg
